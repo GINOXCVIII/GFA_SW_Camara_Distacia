@@ -7,14 +7,10 @@ Created on Thu Sep  7 16:55:48 2023
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QFileDialog, QMainWindow, QMenu, QAction, QLabel, QVBoxLayout, QListWidget, QListWidgetItem, QLineEdit
-from PyQt5 import QtWidgets, QtGui, QtCore, uic
-from PyQt5.QtMultimedia import QCameraInfo
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QLineEdit
 
 import sys
 import cv2
-import numpy as np
 import f_busqueda_camaras as fbc
 import f_camara_deteccion as fcd
 
@@ -123,7 +119,8 @@ class MiVentana(QMainWindow):
         else:
             print("ganso, rellena todo")
             # Tengo que hacer algun feedback para indicar que faltan cosas
-        
+
+
 app = QApplication(sys.argv)
 ventana = MiVentana()
 ventana.show()
