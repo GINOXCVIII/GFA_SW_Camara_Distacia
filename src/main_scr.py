@@ -7,7 +7,7 @@ Created on Thu Sep  7 16:55:48 2023
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QLineEdit, QFileDialog
 
 import sys
 import cv2
@@ -25,6 +25,8 @@ if len(indices_camaras) == len(nombres_camaras):
     for i in range(len(indices_camaras)):
         camara = str(indices_camaras[i]) + ": " + nombres_camaras[i]
         camaras.append(camara)
+        
+videopath = "Archivo de video"
 # ------------------------------------------------------------------------------------------------
 class MiVentana(QMainWindow):
     def __init__(self):
@@ -45,12 +47,13 @@ class MiVentana(QMainWindow):
         for c in camaras:
             item = QListWidgetItem(c)
             self.listView.addItem(item)
+        self.listView.addItem(videopath)
             
-        self.label_2 = QtWidgets.QLabel("Camaras", self)
+        self.label_2 = QtWidgets.QLabel("Fuentes", self)
         self.label_2.setGeometry(QtCore.QRect(10, 20, 141, 20))
         self.label_2.setObjectName("label_2")
         
-        self.listView.itemClicked.connect(self.seleccion_cam)
+        self.listView.itemClicked.connect(self.seleccion_fuente)
         
         # Lista de colores
         self.listView_2 = QListWidget(self)
@@ -93,12 +96,23 @@ class MiVentana(QMainWindow):
         self.label.setGeometry(QtCore.QRect(10, 340, w-1, 21))
         self.label.setObjectName("label")
         
+    def seleccion_fuente(self, item):
+        item_text = item.text()
+        if item_text == videopath:
+            self.seleccion_videopath()
+        else:
+            self.seleccion_cam(item)
+        
     def seleccion_cam(self, item):
         seleccion = item.text()
         print(f"Camara: {seleccion}")
         self.cam_seleccionada = int(seleccion[0]) # El primer caracter de la cadena es el indice de la camara
         print(self.cam_seleccionada)
         # print(item) No puedo usar item como parametro para iniciar la camara
+        
+    def seleccion_videopath(self):
+        print("videopath")
+        self.cam_seleccionada = videopath
         
     def seleccion_col(self, item):
         seleccion = item.text()
@@ -113,13 +127,25 @@ class MiVentana(QMainWindow):
         print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
         
     def iniciar_captura(self):
-        if self.cam_seleccionada != -1 and self.col_seleccionado != -1 and self.ref_seleccionada != -1:
-            cap = cv2.VideoCapture(self.cam_seleccionada)
-            fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
+        if self.col_seleccionado != -1 and self.ref_seleccionada != -1:
+            if self.cam_seleccionada == videopath:
+                self.cam_seleccionada = self.cargar_archivo_video()
+                cap = cv2.VideoCapture(self.cam_seleccionada)
+                fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
+            elif self.cam_seleccionada != -1:
+                cap = cv2.VideoCapture(self.cam_seleccionada)
+                fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
         else:
             print("ganso, rellena todo")
             # Tengo que hacer algun feedback para indicar que faltan cosas
 
+    def cargar_archivo_video(self):
+        opciones = QFileDialog.Options()
+        opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
+
+        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
+
+        return archivo
 
 app = QApplication(sys.argv)
 ventana = MiVentana()
