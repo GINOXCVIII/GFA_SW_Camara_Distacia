@@ -75,7 +75,7 @@ class MiVentana(QMainWindow):
         self.lineEdit.setGeometry(QtCore.QRect(110, 310, 113, 22))
         self.lineEdit.setObjectName("lineEdit")
         
-        self.pushButton_2 = QtWidgets.QPushButton("Aplciar", self)
+        self.pushButton_2 = QtWidgets.QPushButton("Aplicar", self)
         self.pushButton_2.setGeometry(QtCore.QRect(233, 310, 80, 22))
         self.pushButton_2.setObjectName("pushButton_2")
         

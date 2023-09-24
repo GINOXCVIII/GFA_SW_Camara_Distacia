@@ -9,6 +9,9 @@ Created on Fri Jun 30 17:03:40 2023
 import cv2
 import numpy as np
 import pyautogui
+import time
+import tkinter as tk
+from tkinter import filedialog
 
 import f_busqueda_camaras as bc
 
@@ -31,14 +34,22 @@ azul = (low_blue, high_blue)
 video_path = "/home/imano-oh/poo.mp4"
 
 cap = 0
-# cap = cv2.VideoCapture(3) # Revisar el tema de los indices de camara; cambian por alguna razón
-# cap = cv2.VideoCapture(video_path)
+fps_limite = 60.0
+frame_delay = 1.0 / fps_limite
 
 prev_y = 0
 reference_point = (320, 240)  # Coordenadas del punto de referencia. Es el centro de la imagen pues la resolucion es 640x480
 referencia_cm = 1
 
-cte_proporcion_cm_px = 0
+# cte_proporcion_cm_px = 0
+
+fs = 0.33
+err_fs = 0.05
+
+# --------------------------------------------------------------------------
+
+def punto_referencia():
+    return reference_point
 
 # --------------------------------------------------------------------------
 
@@ -88,6 +99,14 @@ def calibracion(frame, camara, color, ref):
 
 def iniciar_deteccion(color, cap, p_y, ref):
     
+    posicion_obj1 = []
+    posicion_obj2 = []
+    
+    tiempo_proceso = 0
+    tiempo_acumulado = 0
+    tiempo_muestreo = 0
+    cte_proporcion_cm_px = 0
+    
     def validar_color(color):
         if len(color) == 1:
             if color == "r": 
@@ -103,9 +122,21 @@ def iniciar_deteccion(color, cap, p_y, ref):
         
     while True:
         
+        tic = time.time()
+        
         start_time = cv2.getTickCount()
         
         ret, frame = cap.read()
+        
+        if not ret:
+            print("tiempo total proceso: ", tiempo_acumulado)
+            print("objeto 1: ", posicion_obj1, "cantidad puntos", len(posicion_obj1))
+            print("objeto 2: ", posicion_obj2, "cantidad puntos", len(posicion_obj2))
+            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
+            cap.release()
+            cv2.destroyAllWindows()
+            break
+        
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #mask = cv2.inRange(hsv, lower_pink, upper_pink)
         mask = cv2.inRange(hsv, color[0], color[1]) # _, lower, higher
@@ -113,35 +144,38 @@ def iniciar_deteccion(color, cap, p_y, ref):
         
         # Agarro solo los dos más grandes, si no me explota la PC
         contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
-    
+        
+        # Esta parte me lentea el programa. ¿como optimizarlo? - El pyautogui lenteaba todo
         for i in contours_sorted:
             area = cv2.contourArea(i)
             if area > 500:
                 x, y, w, h = cv2.boundingRect(i)
                 cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                if y < p_y:
-                    pyautogui.press('space')
-                p_y = y
+                #if y < p_y:
+                #    pyautogui.press('space')
+                #p_y = y
+        #
     
         cv2.circle(frame, reference_point, 5, (0, 0, 255 ), -1)
         
-        l_contours = centros(contours)
+        l_contours = centros(contours) # Tengo que extraer estos cosos
         
         c1 = l_contours[0]
         c2 = l_contours[1]
+        
         # Marcar centro del marco (+ centro de la imagen)
         cv2.circle(frame, (c1[0], c1[1]), 3, (0, 255, 0), -1)
         cv2.circle(frame, (c2[0], c2[1]), 3, (0, 255, 0), -1)
         
         # Mostrar posicion centro de los 2 rectangulos mas grandes
-        cv2.putText(frame, f"cx1 : {c1[0] - reference_point[0]} px, cy1 : {-1*(c1[1] - reference_point[1])} px", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-        cv2.putText(frame, f"cx2 : {c2[0] - reference_point[0]} px, cy2 : {-1*(c2[1] - reference_point[1])} px", (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 255), 1)
+        cv2.putText(frame, f"cx1 : {c1[0] - reference_point[0]} px, cy1 : {reference_point[1] - c1[1]} px", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+        cv2.putText(frame, f"cx2 : {c2[0] - reference_point[0]} px, cy2 : {reference_point[1] - c2[1]} px", (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 255), 1)
     
         dist_c1_c2 = np.sqrt((c1[0] - c2[0])**2 + (c1[1] - c2[1])**2)
         # Imprimir en pantalla distancia entre c1 y c2
         cv2.putText(frame, f"Distancia c1 a c2 : {dist_c1_c2} px", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
         
-        # Calibracion
+        # Calibracion. Optimizar para que calibre por cambios muy bruscos
         cte_proporcion_cm_px = calibracion(frame, cap, rojo, ref) # Fijado para hacer calibracion con rojo
         dist_c1_c2_cm = dist_c1_c2 * cte_proporcion_cm_px
         cv2.putText(frame, f"Distancia c1 a c2 : {dist_c1_c2_cm} cm", (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
@@ -150,7 +184,12 @@ def iniciar_deteccion(color, cap, p_y, ref):
     
         # cv2.imshow('frame', frame)
         
-        # Calculo FPS de reproduccion
+        # Calculo FPS de reproduccion y limite
+        time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
+        #fps = 1.0 / time_taken
+        retardo_limite_fps = max(0, frame_delay, time_taken)
+        print("sabumafu", retardo_limite_fps, time_taken)
+        time.sleep(retardo_limite_fps)
         time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
         fps = 1.0 / time_taken
         # print(f"FPS: {fps:.2f}")
@@ -158,11 +197,58 @@ def iniciar_deteccion(color, cap, p_y, ref):
         
         cv2.imshow('frame', frame)
         
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        toc = time.time()
+        
+        tiempo_proceso = toc - tic
+        tiempo_acumulado += tiempo_proceso
+        tiempo_muestreo += tiempo_proceso
+        
+        # Muestreo
+        if tiempo_muestreo <= (fs + err_fs) and tiempo_muestreo >= (fs - err_fs):
+            tiempo_muestreo = 0
+            # Tupla de 3 elementos: tiempo_i, x_i, y_i Posicion en pixeles respecto al centro de la imagen (reference_point)
+            posicion_obj1.append((tiempo_acumulado, c1[0] - reference_point[0], reference_point[1] - c1[1], (c1[0] - reference_point[0])*cte_proporcion_cm_px, (reference_point[1] - c1[1])*cte_proporcion_cm_px))
+            posicion_obj2.append((tiempo_acumulado, c2[0] - reference_point[0], reference_point[1] - c2[1], (c2[0] - reference_point[0])*cte_proporcion_cm_px, (reference_point[1] - c2[1])*cte_proporcion_cm_px))
+        
+        if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
+            print("tiempo total proceso: ", tiempo_acumulado)
+            print("objeto 1: ", posicion_obj1, "Cantidad puntos", len(posicion_obj1))
+            print("objeto 2: ", posicion_obj2, "Cantidad puntos", len(posicion_obj2))
+            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
             cap.release()
             cv2.destroyAllWindows()
             break
         
+# --------------------------------------------------------------------------
+
+def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, lista_2):
+    root = tk.Tk()
+    root.withdraw()
+    
+    directorio_destino = filedialog.askdirectory(title="Selecciona una carpeta de destino")
+    
+    if directorio_destino:
+        nombre_archivo = "coordenadas.txt"
+        ruta_archivo = f"{directorio_destino}/{nombre_archivo}"
+        
+        try:
+            with open(ruta_archivo, 'w') as archivo:
+                archivo.write(f"Tiempo total del proceso: {tiempo_a}\n")
+                archivo.write("\nCoordenadas objeto 1: \n")
+                archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)\n")
+                for tupla in lista_1:
+                    archivo.write(f"{tupla[0]} {tupla[1]} {tupla[2]} {tupla[3]} {tupla[4]}\n")
+                archivo.write("\nCoordenadas objeto 2: \n")
+                archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)\n")
+                for tupla in lista_2:
+                    archivo.write(f"{tupla[0]} {tupla[1]} {tupla[2]} {tupla[3]} {tupla[4]}\n")
+                    
+            print(f"Texto guardado en '{ruta_archivo}' con éxito.")
+        except Exception as e:
+            print(f"Error al guardar el texto en '{ruta_archivo}': {str(e)}")
+    else:
+        print("No se ha seleccionado una carpeta de destino.")
+
 # --------------------------------------------------------------------------
 
 def menu():
