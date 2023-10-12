@@ -105,6 +105,10 @@ def iniciar_deteccion(color, cap, p_y, ref):
     tiempo_muestreo = 0
     cte_proporcion_cm_px = 0
     
+    print("color:", color, "cap:", cap, "ref:", ref)
+    print("color bajo:", color[0], "color alto:", color[1])
+    
+    """
     def validar_color(color):
         if len(color) == 1:
             if color == "r": 
@@ -117,7 +121,8 @@ def iniciar_deteccion(color, cap, p_y, ref):
             return color
     
     color = validar_color(color)
-        
+    """
+    
     while True:
         
         tic = time.time()
