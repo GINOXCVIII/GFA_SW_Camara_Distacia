@@ -30,11 +30,12 @@ if len(indices_camaras) == len(nombres_camaras):
         camaras.append(camara)
         
 videopath = "Archivo de video"
+camara = "Camara"
 # ------------------------------------------------------------------------------------------------
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
-        w = 432
+        w = 445
         h = 450
         cam_seleccionada = -1
         col_seleccionado = -1
@@ -49,11 +50,14 @@ class MiVentana(QMainWindow):
         
         # Lista de camaras
         self.listView = QListWidget(self)
-        self.listView.setGeometry(QtCore.QRect(10, 60, 151, 251))
+        self.listView.setGeometry(QtCore.QRect(10, 40, 151, 251))
         self.listView.setObjectName("listView")
+        self.listView.addItem(camara)
+        """
         for c in camaras:
             item = QListWidgetItem(c)
             self.listView.addItem(item)
+        """
         self.listView.addItem(videopath)
             
         self.label_2 = QtWidgets.QLabel("Fuentes", self)
@@ -78,8 +82,8 @@ class MiVentana(QMainWindow):
         self.label_3.setGeometry(QtCore.QRect(180, 20, 141, 20))
         self.label_3.setObjectName("label_3")
         
-        # Color 1 - Color alto
-        self.label_4 = QtWidgets.QLabel("Color alto", self)
+        # Color 1 - Color bajo
+        self.label_4 = QtWidgets.QLabel("Color bajo", self)
         self.label_4.setGeometry(QtCore.QRect(180, 50, 141, 20))
         self.label_4.setObjectName("label_4")
         
@@ -97,12 +101,12 @@ class MiVentana(QMainWindow):
         self.etiqueta_color_1.setGeometry(QtCore.QRect(180, 80, 60, 60))
         
         self.hsv_color_1 = QLabel(self)
-        self.hsv_color_1.setGeometry(180, 150, 220, 20)
+        self.hsv_color_1.setGeometry(180, 150, 260, 20)
         
         self.actualizar_color_1()  # Actualizar la muestra de color inicial
         
-        # Color 2 - Color bajo
-        self.label_5 = QtWidgets.QLabel("Color bajo", self)
+        # Color 2 - Color alto
+        self.label_5 = QtWidgets.QLabel("Color alto", self)
         self.label_5.setGeometry(QtCore.QRect(180, 190, 141, 20))
         self.label_5.setObjectName("label_5")
         
@@ -120,7 +124,7 @@ class MiVentana(QMainWindow):
         self.etiqueta_color_2.setGeometry(QtCore.QRect(180, 220, 60, 60))
         
         self.hsv_color_2 = QLabel(self)
-        self.hsv_color_2.setGeometry(180, 290, 220, 20)
+        self.hsv_color_2.setGeometry(180, 290, 260, 20)
         
         self.actualizar_color_2()  # Actualizar la muestra de color inicial
         
@@ -133,15 +137,15 @@ class MiVentana(QMainWindow):
         # Cuadro de entrada de la referencia
         self.lineEdit = QLineEdit(self)
         self.lineEdit.setValidator(QtGui.QDoubleValidator()) # Solo se pueden ingresar numeros
-        self.lineEdit.setGeometry(QtCore.QRect(110, 330, 113, 22))
+        self.lineEdit.setGeometry(QtCore.QRect(130, 330, 113, 22))
         self.lineEdit.setObjectName("lineEdit")
         
         self.label = QtWidgets.QLabel("Referencia (cm)", self)
-        self.label.setGeometry(QtCore.QRect(10, 330, 101, 21))
+        self.label.setGeometry(QtCore.QRect(10, 330, 141, 21))
         self.label.setObjectName("label")
         
         self.pushButton_2 = QtWidgets.QPushButton("Aplicar", self)
-        self.pushButton_2.setGeometry(QtCore.QRect(233, 330, 80, 22))
+        self.pushButton_2.setGeometry(QtCore.QRect(253, 330, 80, 22))
         self.pushButton_2.setObjectName("pushButton_2")
         
         self.pushButton_2.clicked.connect(self.validar_ingreso_referencia)
@@ -165,12 +169,15 @@ class MiVentana(QMainWindow):
             self.seleccion_cam(item)
         
     def seleccion_cam(self, item):
+        print("camara")
+        self.cam_seleccionada = camara
+        """
         seleccion = item.text()
-        print(f"Camara: {seleccion}")
+        print(f"Fuente: {seleccion}")
         self.cam_seleccionada = int(seleccion[0]) # El primer caracter de la cadena es el indice de la camara
-        # Puede pasar que haya 10 o mas camaras? Puede fallar
         print(self.cam_seleccionada)
         # print(item) No puedo usar item como parametro para iniciar la camara
+        """
         
     def seleccion_videopath(self):
         print("videopath")
@@ -198,10 +205,13 @@ class MiVentana(QMainWindow):
                 self.cam_seleccionada = self.cargar_archivo_video()
                 cap = cv2.VideoCapture(self.cam_seleccionada)
                 fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
-            
+            elif self.cam_seleccionada == camara:
+                fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada) # Una abominacion, pero anda por ahora
+                """
             elif self.cam_seleccionada != -1:
                 cap = cv2.VideoCapture(self.cam_seleccionada)
                 fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
+                """
         else:
             print("ganso, rellena todo")
             # Tengo que hacer algun feedback para indicar que faltan cosas
