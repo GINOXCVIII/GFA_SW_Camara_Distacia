@@ -35,7 +35,7 @@ camara = "Camara"
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
-        w = 445
+        w = 385
         h = 450
         cam_seleccionada = -1
         col_seleccionado = -1
@@ -66,16 +66,6 @@ class MiVentana(QMainWindow):
         
         self.listView.itemClicked.connect(self.seleccion_fuente)
         
-        """
-        # Lista de colores
-        self.listView_2 = QListWidget(self)
-        self.listView_2.setGeometry(QtCore.QRect(180, 40, 151, 251))
-        self.listView_2.setObjectName("listView_2")
-        for c in colores:
-            item = QListWidgetItem(c)
-            self.listView_2.addItem(item)
-        """  
-        
         # Picker colores
         
         self.label_3 = QtWidgets.QLabel("Colores", self)
@@ -87,46 +77,30 @@ class MiVentana(QMainWindow):
         self.label_4.setGeometry(QtCore.QRect(180, 50, 141, 20))
         self.label_4.setObjectName("label_4")
         
-        self.slider_matiz_1 = self.crear_slider_1()
-        self.slider_matiz_1.setRange(0, 359)  # Rango de matiz (0-359 grados)
-        self.slider_matiz_1.setGeometry(QtCore.QRect(245, 70, 165, 20))
-        self.slider_saturacion_1 = self.crear_slider_1()
-        self.slider_saturacion_1.setRange(0, 255)
-        self.slider_saturacion_1.setGeometry(QtCore.QRect(245, 100, 165, 20))
-        self.slider_brillo_1 = self.crear_slider_1()
-        self.slider_brillo_1.setRange(0, 255)
-        self.slider_brillo_1.setGeometry(QtCore.QRect(245, 130, 165, 20))
+        self.slider_matiz = self.crear_slider()
+        self.slider_matiz.setRange(0, 359)  # Rango de matiz (0-359 grados)
+        self.slider_matiz.setGeometry(QtCore.QRect(255, 70, 20, 165))
+        self.slider_toleracion = self.crear_slider()
+        self.slider_toleracion.setRange(0, 50)
+        self.slider_toleracion.setGeometry(QtCore.QRect(300, 70, 20, 165))
         
         self.etiqueta_color_1 = QLabel(self)
         self.etiqueta_color_1.setGeometry(QtCore.QRect(180, 80, 60, 60))
+        self.etiqueta_color_2 = QLabel(self)
+        self.etiqueta_color_2.setGeometry(QtCore.QRect(180, 180, 60, 60))
         
         self.hsv_color_1 = QLabel(self)
-        self.hsv_color_1.setGeometry(180, 150, 260, 20)
+        self.hsv_color_1.setGeometry(180, 260, 260, 20)
         
-        self.actualizar_color_1()  # Actualizar la muestra de color inicial
+        # self.hsv_color_2 = QLabel(self)
+        # self.hsv_color_2.setGeometry(180, 290, 260, 20)
+        
+        self.actualizar_color()  # Actualizar la muestra de color inicial
         
         # Color 2 - Color alto
         self.label_5 = QtWidgets.QLabel("Color alto", self)
-        self.label_5.setGeometry(QtCore.QRect(180, 190, 141, 20))
+        self.label_5.setGeometry(QtCore.QRect(180, 150, 141, 20))
         self.label_5.setObjectName("label_5")
-        
-        self.slider_matiz_2 = self.crear_slider_2()
-        self.slider_matiz_2.setRange(0, 359)  # Rango de matiz (0-359 grados)
-        self.slider_matiz_2.setGeometry(QtCore.QRect(245, 210, 165, 20))
-        self.slider_saturacion_2 = self.crear_slider_2()
-        self.slider_saturacion_2.setRange(0, 255)
-        self.slider_saturacion_2.setGeometry(QtCore.QRect(245, 240, 165, 20))
-        self.slider_brillo_2 = self.crear_slider_2()
-        self.slider_brillo_2.setRange(0, 255)
-        self.slider_brillo_2.setGeometry(QtCore.QRect(245, 270, 165, 20))
-        
-        self.etiqueta_color_2 = QLabel(self)
-        self.etiqueta_color_2.setGeometry(QtCore.QRect(180, 220, 60, 60))
-        
-        self.hsv_color_2 = QLabel(self)
-        self.hsv_color_2.setGeometry(180, 290, 260, 20)
-        
-        self.actualizar_color_2()  # Actualizar la muestra de color inicial
         
         self.label_3 = QtWidgets.QLabel("Colores", self)
         self.label_3.setGeometry(QtCore.QRect(180, 20, 141, 20))
@@ -171,13 +145,6 @@ class MiVentana(QMainWindow):
     def seleccion_cam(self, item):
         print("camara")
         self.cam_seleccionada = camara
-        """
-        seleccion = item.text()
-        print(f"Fuente: {seleccion}")
-        self.cam_seleccionada = int(seleccion[0]) # El primer caracter de la cadena es el indice de la camara
-        print(self.cam_seleccionada)
-        # print(item) No puedo usar item como parametro para iniciar la camara
-        """
         
     def seleccion_videopath(self):
         print("videopath")
@@ -224,55 +191,42 @@ class MiVentana(QMainWindow):
 
         return archivo
     
-    def crear_slider_1(self):
-        slider = QSlider(Qt.Horizontal, self)
-        slider.valueChanged.connect(self.actualizar_color_1)
+    def crear_slider(self):
+        slider = QSlider(Qt.Vertical, self)
+        slider.valueChanged.connect(self.actualizar_color)
         
         return slider
     
-    def actualizar_color_1(self):
-        matiz = self.slider_matiz_1.value()
-        saturacion = self.slider_saturacion_1.value()
-        brillo = self.slider_brillo_1.value()
+    def actualizar_color(self):
+        matiz = self.slider_matiz.value()
+        tolerancia = self.slider_toleracion.value()
+        
+        matiz_alto = min(matiz + tolerancia, 359)
+        saturacion_alto = 255
+        brillo_alto = 255
+                
+        matiz_bajo = max(matiz - tolerancia, 0)
+        saturacion_bajo = 100
+        brillo_bajo = 100
         
         # Crear un color a partir de matiz y brillo
-        color_muestra = QColor.fromHsv(matiz, saturacion, brillo) # Color HSV (tono, saturacion, brillo)
-        # print(self.matiz, 255, self.brillo)
+        color_alto_muestra = QColor.fromHsv(matiz_alto, saturacion_alto, brillo_alto) # Color HSV (tono, saturacion, brillo)
+        color_bajo_muestra = QColor.fromHsv(matiz_bajo, saturacion_bajo, brillo_bajo)
 
         # Crear una imagen con el color seleccionado
-        imagen = QPixmap(100, 100)
-        imagen.fill(color_muestra)
+        imagen_alto = QPixmap(100, 100)
+        imagen_alto.fill(color_alto_muestra)
+        imagen_bajo = QPixmap(100, 100)
+        imagen_bajo.fill(color_bajo_muestra)
 
         # Mostrar la imagen en la etiqueta de muestra de color
-        self.etiqueta_color_1.setPixmap(imagen)
+        self.etiqueta_color_1.setPixmap(imagen_bajo)
+        self.etiqueta_color_2.setPixmap(imagen_alto)
         
-        self.hsv_color_1.setText(f"Matiz: {matiz} Saturacion: {saturacion} Brillo: {brillo}")
-        self.color_1 = [matiz, saturacion, brillo]
-    
-    def crear_slider_2(self):
-        slider = QSlider(Qt.Horizontal, self)
-        slider.valueChanged.connect(self.actualizar_color_2)
+        self.hsv_color_1.setText(f"Matiz alto: {matiz_alto} Matiz bajo: {matiz_bajo}")
         
-        return slider
-    
-    def actualizar_color_2(self):
-        matiz = self.slider_matiz_2.value()
-        saturacion = self.slider_saturacion_2.value()
-        brillo = self.slider_brillo_2.value()
-        
-        # Crear un color a partir de matiz y brillo
-        color_muestra = QColor.fromHsv(matiz, 255, brillo) # Color HSV (tono, saturacion, brillo)
-        # print(self.matiz, 255, self.brillo)
-
-        # Crear una imagen con el color seleccionado
-        imagen = QPixmap(100, 100)
-        imagen.fill(color_muestra)
-
-        # Mostrar la imagen en la etiqueta de muestra de color
-        self.etiqueta_color_2.setPixmap(imagen)
-        
-        self.hsv_color_2.setText(f"Matiz: {matiz} Saturacion: {saturacion} Brillo: {brillo}")
-        self.color_2 = [matiz, 255, brillo]
+        self.color_1 = [matiz_bajo, saturacion_bajo, brillo_bajo]
+        self.color_2 = [matiz_alto, saturacion_alto, brillo_alto]
     
     def tupla_color(self, c1, c2):
         return (np.array(c1), np.array(c2))
