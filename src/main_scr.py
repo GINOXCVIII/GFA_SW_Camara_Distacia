@@ -35,7 +35,7 @@ camara = "Camara"
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
-        w = 385
+        w = 405
         h = 450
         cam_seleccionada = -1
         col_seleccionado = -1
@@ -80,9 +80,9 @@ class MiVentana(QMainWindow):
         self.slider_matiz = self.crear_slider()
         self.slider_matiz.setRange(0, 359)  # Rango de matiz (0-359 grados)
         self.slider_matiz.setGeometry(QtCore.QRect(255, 70, 20, 165))
-        self.slider_toleracion = self.crear_slider()
-        self.slider_toleracion.setRange(0, 50)
-        self.slider_toleracion.setGeometry(QtCore.QRect(300, 70, 20, 165))
+        self.slider_tolerancia = self.crear_slider()
+        self.slider_tolerancia.setRange(0, 50)
+        self.slider_tolerancia.setGeometry(QtCore.QRect(300, 70, 20, 165))
         
         self.etiqueta_color_1 = QLabel(self)
         self.etiqueta_color_1.setGeometry(QtCore.QRect(180, 80, 60, 60))
@@ -199,7 +199,7 @@ class MiVentana(QMainWindow):
     
     def actualizar_color(self):
         matiz = self.slider_matiz.value()
-        tolerancia = self.slider_toleracion.value()
+        tolerancia = self.slider_tolerancia.value()
         
         matiz_alto = min(matiz + tolerancia, 359)
         saturacion_alto = 255

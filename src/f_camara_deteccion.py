@@ -83,6 +83,12 @@ def calibracion(frame, camara, color, ref):
     mask = cv2.inRange(hsv, color[0], color[1])
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
+    contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
+    for i in contours_sorted:
+            area = cv2.contourArea(i)
+            x, y, w, h = cv2.boundingRect(i)
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 1)
+    
     l_contours = centros(contours) + [reference_point, reference_point]
     
     c1 = l_contours[0]
@@ -129,6 +135,7 @@ def iniciar_deteccion(color, cap, p_y, ref):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, color[0], color[1]) # _, lower, higher
         
+        cte_proporcion_cm_px = calibracion(frame, cap, rojo, ref) # Fijado para hacer calibracion con rojo
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
@@ -136,14 +143,12 @@ def iniciar_deteccion(color, cap, p_y, ref):
         # [:1] para que solo remarque el primer elemento, que seria el mas grande
         for i in contours_sorted[:1]:
             area = cv2.contourArea(i)
-            # ¿Achicar o agrandar el area a remarcar?
-            if area > 250:
-                nuevoContorno = cv2.convexHull(i)
-                #dibujo contorno
-                cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 2)
+            nuevoContorno = cv2.convexHull(i)
+            # dibujo contorno
+            cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 2)
                 
-                #x, y, w, h = cv2.boundingRect(i)
-                #cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            # x, y, w, h = cv2.boundingRect(i)
+            # cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
     
         cv2.circle(frame, reference_point, 5, (0, 0, 255 ), -1)
         
@@ -160,7 +165,7 @@ def iniciar_deteccion(color, cap, p_y, ref):
         # Calibracion. Optimizar para que calibre por cambios muy bruscos
         dist_c1_c2 = int(np.sqrt((c1[0] - reference_point[0])**2 + (c1[1] - reference_point[1])**2))
         
-        cte_proporcion_cm_px = calibracion(frame, cap, rojo, ref) # Fijado para hacer calibracion con rojo
+        # cte_proporcion_cm_px = calibracion(frame, cap, rojo, ref) # Fijado para hacer calibracion con rojo
         dist_c1_c2_cm = round(dist_c1_c2 * cte_proporcion_cm_px, 4)
         
         # Imprimir en pantalla distancia entre c1 y c2
