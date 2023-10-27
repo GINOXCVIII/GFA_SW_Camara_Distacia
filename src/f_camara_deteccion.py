@@ -13,7 +13,9 @@ import tkinter as tk
 from tkinter import filedialog
 
 import f_busqueda_camaras as bc
+import f_colores as col
 
+"""
 # ¿importar los colores de un archivo?
 # low_green = np.array([36, 50, 70])
 # high_green = np.array([89, 255, 255])
@@ -31,9 +33,14 @@ low_blue = np.array([110, 50, 50])
 high_blue = np.array([130, 255, 255])
 
 # Tuplas colores
-verde = (low_green, high_green)
-rojo = (low_red, high_red)
-azul = (low_blue, high_blue)
+verde = (low_green, high_green, "Verde")
+rojo = (low_red, high_red, "Rojo")
+azul = (low_blue, high_blue, "Azul")
+"""
+
+colores = col.lista_colores()
+# colores = [rojo, verde, azul, amarillo, fucsia, naranja, cian]
+rojo = colores[0]
 
 video_path = "/home/imano-oh/poo.mp4"
 
@@ -51,8 +58,23 @@ Ts = 0.3
 
 # --------------------------------------------------------------------------
 
-def punto_referencia():
+def get_punto_referencia():
     return reference_point
+
+def get_lista_colores():
+    return colores
+    
+def get_colores_nombre():
+    lista_nombres = []
+    for c in colores:
+        lista_nombres.append(c[2])
+    return lista_nombres
+    
+def get_colores_matices():
+    lista_matices = []
+    for c in colores:
+        lista_matices.append((c[0], c[1]))
+    return lista_matices
 
 # --------------------------------------------------------------------------
 
@@ -125,8 +147,8 @@ def iniciar_deteccion(color, cap, p_y, ref):
         ret, frame = cap.read()
         
         if not ret:
-            print("tiempo total proceso: ", tiempo_acumulado)
-            print("objeto 1: ", posicion_obj1, "cantidad puntos", len(posicion_obj1))
+            # print("tiempo total proceso: ", tiempo_acumulado)
+            # print("objeto 1: ", posicion_obj1, "cantidad puntos", len(posicion_obj1))
             guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
             cap.release()
             cv2.destroyAllWindows()
@@ -195,8 +217,8 @@ def iniciar_deteccion(color, cap, p_y, ref):
         posicion_obj1.append((round(tiempo_acumulado, 2), c1[0] - reference_point[0], reference_point[1] - c1[1], (c1[0] - reference_point[0])*cte_proporcion_cm_px, (reference_point[1] - c1[1])*cte_proporcion_cm_px, dist_c1_c2, dist_c1_c2_cm))
             
         if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
-            print("tiempo total proceso: ", tiempo_acumulado)
-            print("objeto 1: ", posicion_obj1, "Cantidad puntos", len(posicion_obj1))
+            # print("tiempo total proceso: ", tiempo_acumulado)
+            # print("objeto 1: ", posicion_obj1, "Cantidad puntos", len(posicion_obj1))
             guardar_coordenadas_txt(round(tiempo_acumulado, 2), cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
             cap.release()
             cv2.destroyAllWindows()
@@ -230,6 +252,7 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, lista_2):
 
 # --------------------------------------------------------------------------
 
+# No se usa
 def menu():
     camaras = bc.camaras_disponibles()
     camaras_nombre = bc.camaras_nombres()
@@ -274,13 +297,13 @@ def menu():
     while True:
         color = input("Ingrese color a medir (rojo (r) | azul (a) | verde (v)): ")
         if color == "r":
-            iniciar_deteccion(rojo, cap, prev_y, referencia_cm)
+            iniciar_deteccion(colores[0], cap, prev_y, referencia_cm)
             break
         elif color == "a":
-            iniciar_deteccion(azul, cap, prev_y, referencia_cm)
+            iniciar_deteccion(colores[2], cap, prev_y, referencia_cm)
             break
         elif color == "v":
-            iniciar_deteccion(verde, cap, prev_y, referencia_cm)
+            iniciar_deteccion(colores[1], cap, prev_y, referencia_cm)
             break
         else:
             print("Ingreso no valido\n")
@@ -294,6 +317,8 @@ def hard_inicio(c, r):
     iniciar_deteccion(c, cap, prev_y, r)
 
 # --------------------------------------------------------------------------
+
+# hard_inicio(rojo, 10)
 
    # cap.release()
    # cv2.destroyAllWindows()

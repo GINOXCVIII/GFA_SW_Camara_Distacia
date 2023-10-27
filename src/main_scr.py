@@ -22,7 +22,11 @@ bocchi = ["b","o","c","c","h","i","z","a","r","o","c","k"]
 indices_camaras = fbc.camaras_indices()
 nombres_camaras = fbc.camaras_nombres()
 camaras = []
-colores = ["Rojo", "Verde", "Azul"]
+colores = fcd.get_lista_colores()
+
+colores_nombres = []
+for c in colores:
+        colores_nombres.append(c[2])
 
 if len(indices_camaras) == len(nombres_camaras):
     for i in range(len(indices_camaras)):
@@ -31,6 +35,7 @@ if len(indices_camaras) == len(nombres_camaras):
         
 videopath = "Archivo de video"
 camara = "Camara"
+
 # ------------------------------------------------------------------------------------------------
 class MiVentana(QMainWindow):
     def __init__(self):
@@ -40,9 +45,9 @@ class MiVentana(QMainWindow):
         cam_seleccionada = -1
         col_seleccionado = -1
         ref_seleccionada = -1
-        # Colores HSV [matiz, saturacion, brillo] Saturacion fija ¿se puede cambiar?
-        color_1 = [0, 255, 0]
-        color_2 = [0, 255, 0]
+        
+        self.color_1 = [11, 0, 0]
+        self.color_2 = [11, 0, 0]
         
         self.setWindowTitle("GFA")  # Establecer el título de la ventana
         self.setGeometry(100, 100, w, h)  # Establecer la posición y el tamaño de la ventana
@@ -66,47 +71,33 @@ class MiVentana(QMainWindow):
         
         self.listView.itemClicked.connect(self.seleccion_fuente)
         
-        # Picker colores
-        
+        # Lista de colores
+        self.listView_2 = QListWidget(self)
+        self.listView_2.setGeometry(QtCore.QRect(180, 40, 151, 161))
+        self.listView_2.setObjectName("listView_2")
+        for c in colores_nombres[1:]:
+            item = QListWidgetItem(c)
+            self.listView_2.addItem(item)
+            
         self.label_3 = QtWidgets.QLabel("Colores", self)
         self.label_3.setGeometry(QtCore.QRect(180, 20, 141, 20))
         self.label_3.setObjectName("label_3")
         
-        # Color 1 - Color bajo
-        self.label_4 = QtWidgets.QLabel("Color bajo", self)
-        self.label_4.setGeometry(QtCore.QRect(180, 50, 141, 20))
-        self.label_4.setObjectName("label_4")
+        self.listView_2.itemClicked.connect(self.seleccion_col)
         
-        self.slider_matiz = self.crear_slider()
-        self.slider_matiz.setRange(0, 359)  # Rango de matiz (0-359 grados)
-        self.slider_matiz.setGeometry(QtCore.QRect(255, 70, 20, 165))
+        # Slider de tolerancia
         self.slider_tolerancia = self.crear_slider()
-        self.slider_tolerancia.setRange(0, 50)
-        self.slider_tolerancia.setGeometry(QtCore.QRect(300, 70, 20, 165))
+        self.slider_tolerancia.setRange(0, 10)  # Rango de matiz (0-359 grados)
+        self.slider_tolerancia.setGeometry(QtCore.QRect(180, 270, 151, 20))
+        
+        self.tolerancia_anterior = self.slider_tolerancia.value()
         
         self.etiqueta_color_1 = QLabel(self)
-        self.etiqueta_color_1.setGeometry(QtCore.QRect(180, 80, 60, 60))
+        self.etiqueta_color_1.setGeometry(QtCore.QRect(190, 210, 50, 50))
         self.etiqueta_color_2 = QLabel(self)
-        self.etiqueta_color_2.setGeometry(QtCore.QRect(180, 180, 60, 60))
+        self.etiqueta_color_2.setGeometry(QtCore.QRect(271, 210, 50, 50))
         
-        self.hsv_color_1 = QLabel(self)
-        self.hsv_color_1.setGeometry(180, 260, 260, 20)
-        
-        # self.hsv_color_2 = QLabel(self)
-        # self.hsv_color_2.setGeometry(180, 290, 260, 20)
-        
-        self.actualizar_color()  # Actualizar la muestra de color inicial
-        
-        # Color 2 - Color alto
-        self.label_5 = QtWidgets.QLabel("Color alto", self)
-        self.label_5.setGeometry(QtCore.QRect(180, 150, 141, 20))
-        self.label_5.setObjectName("label_5")
-        
-        self.label_3 = QtWidgets.QLabel("Colores", self)
-        self.label_3.setGeometry(QtCore.QRect(180, 20, 141, 20))
-        self.label_3.setObjectName("label_3")
-        
-        # self.listView_2.itemClicked.connect(self.seleccion_col)
+        self.actualizar_color()
         
         # Cuadro de entrada de la referencia
         self.lineEdit = QLineEdit(self)
@@ -150,12 +141,14 @@ class MiVentana(QMainWindow):
         print("videopath")
         self.cam_seleccionada = videopath
     
-    # Ya no se usa
     def seleccion_col(self, item):
         seleccion = item.text()
-        print(f"Color: {seleccion}")
-        self.col_seleccionado = seleccion[0].lower() # Tomo el primer caracter en minusculas
-        print(self.col_seleccionado)
+        i = colores_nombres.index(seleccion)
+        self.color_1 = colores[i][0]
+        self.color_2 = colores[i][1]
+        self.col_seleccionado = self.tupla_color(self.color_1, self.color_2)
+        self.actualizar_color()
+        print(f"Color: {seleccion}") 
         
     def validar_ingreso_referencia(self):
         rfs = self.lineEdit.text()
@@ -164,9 +157,8 @@ class MiVentana(QMainWindow):
         print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
         
     def iniciar_captura(self):
-        self.col_seleccionado = self.tupla_color(self.color_1, self.color_2)
+        # self.col_seleccionado = self.tupla_color(self.color_1, self.color_2)
         print(self.col_seleccionado)
-        
         if self.col_seleccionado != -1 and self.ref_seleccionada != -1:
             if self.cam_seleccionada == videopath:
                 self.cam_seleccionada = self.cargar_archivo_video()
@@ -192,26 +184,28 @@ class MiVentana(QMainWindow):
         return archivo
     
     def crear_slider(self):
-        slider = QSlider(Qt.Vertical, self)
+        slider = QSlider(Qt.Horizontal, self)
         slider.valueChanged.connect(self.actualizar_color)
         
         return slider
     
     def actualizar_color(self):
-        matiz = self.slider_matiz.value()
-        tolerancia = self.slider_tolerancia.value()
-        
-        matiz_alto = min(matiz + tolerancia, 359)
-        saturacion_alto = 255
-        brillo_alto = 255
+        tolerancia_actual = self.slider_tolerancia.value()
+        print(self.tolerancia_anterior, tolerancia_actual)
+        if tolerancia_actual > self.tolerancia_anterior:
+                self.color_1[0] -= 1  
+                self.color_2[0] += 1
+        elif tolerancia_actual < self.tolerancia_anterior:
+                self.color_1[0] += 1  
+                self.color_2[0] -= 1
+        else:
+                print("err")
                 
-        matiz_bajo = max(matiz - tolerancia, 0)
-        saturacion_bajo = 100
-        brillo_bajo = 100
+        self.tolerancia_anterior = tolerancia_actual
         
         # Crear un color a partir de matiz y brillo
-        color_alto_muestra = QColor.fromHsv(matiz_alto, saturacion_alto, brillo_alto) # Color HSV (tono, saturacion, brillo)
-        color_bajo_muestra = QColor.fromHsv(matiz_bajo, saturacion_bajo, brillo_bajo)
+        color_bajo_muestra = QColor.fromHsv(self.color_1[0], self.color_1[1], self.color_1[2]) # Color HSV (tono, saturacion, brillo)
+        color_alto_muestra = QColor.fromHsv(self.color_2[0], self.color_2[1], self.color_2[2])
 
         # Crear una imagen con el color seleccionado
         imagen_alto = QPixmap(100, 100)
@@ -223,10 +217,7 @@ class MiVentana(QMainWindow):
         self.etiqueta_color_1.setPixmap(imagen_bajo)
         self.etiqueta_color_2.setPixmap(imagen_alto)
         
-        self.hsv_color_1.setText(f"Matiz alto: {matiz_alto} Matiz bajo: {matiz_bajo}")
-        
-        self.color_1 = [matiz_bajo, saturacion_bajo, brillo_bajo]
-        self.color_2 = [matiz_alto, saturacion_alto, brillo_alto]
+        print(self.color_1, self.color_2)
     
     def tupla_color(self, c1, c2):
         return (np.array(c1), np.array(c2))
