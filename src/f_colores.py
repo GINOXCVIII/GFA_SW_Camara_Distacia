@@ -1,5 +1,6 @@
 import numpy as np
 
+# Amarillo es el mejor para camara. Los demas son complicados de detectar
 # Lista de colores
 low_green = np.array([50, 100, 100])
 high_green = np.array([70, 255, 255])
