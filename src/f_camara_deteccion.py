@@ -11,6 +11,8 @@ import numpy as np
 import time
 import tkinter as tk
 from tkinter import filedialog
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 import f_busqueda_camaras as bc
 import f_colores as col
@@ -55,6 +57,8 @@ referencia_cm = 1
 # cte_proporcion_cm_px = 0
 
 Ts = 0.3
+
+m = 1500
 
 # --------------------------------------------------------------------------
 
@@ -122,7 +126,10 @@ def calibracion(frame, camara, color, ref):
     cv2.circle(frame, (c2[0], c2[1]), 3, (0, 255, 0), -1)
     
     # Proporcion
-    k = ref / dist_c1_c2
+    if dist_c1_c2 == 0:
+        k = 99999 # error
+    else:
+        k = ref / dist_c1_c2
     
     return k
     
@@ -150,6 +157,7 @@ def iniciar_deteccion(color, cap, p_y, ref):
             # print("tiempo total proceso: ", tiempo_acumulado)
             # print("objeto 1: ", posicion_obj1, "cantidad puntos", len(posicion_obj1))
             guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
+            graficar(t[-m:], x[-m:], y[-m:])
             cap.release()
             cv2.destroyAllWindows()
             break
@@ -207,19 +215,24 @@ def iniciar_deteccion(color, cap, p_y, ref):
         
         cv2.imshow('frame', frame)
         
-        toc = time.time()
-        
-        tiempo_proceso = toc - tic
+        tiempo_proceso = time.time() - tic
+
         tiempo_acumulado += tiempo_proceso
         
         # Revisar el tiempo. El tiempo de proceso no es mismo que el tiempo de reproduccion
         
+        t, x, y = [], [], []
         posicion_obj1.append((round(tiempo_acumulado, 2), c1[0] - reference_point[0], reference_point[1] - c1[1], (c1[0] - reference_point[0])*cte_proporcion_cm_px, (reference_point[1] - c1[1])*cte_proporcion_cm_px, dist_c1_c2, dist_c1_c2_cm))
+        for p in posicion_obj1:
+            t.append(p[0])
+            x.append(p[3])
+            y.append(p[4])
             
         if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
             # print("tiempo total proceso: ", tiempo_acumulado)
             # print("objeto 1: ", posicion_obj1, "Cantidad puntos", len(posicion_obj1))
             guardar_coordenadas_txt(round(tiempo_acumulado, 2), cte_proporcion_cm_px, posicion_obj1, posicion_obj2)
+            graficar(t[-m:], x[-m:], y[-m:])
             cap.release()
             cv2.destroyAllWindows()
             break
@@ -243,13 +256,33 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, lista_2):
                 archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)      Dist. centro (px)      Dist. centro (cm)\n")
                 for tupla in lista_1:
                     archivo.write(f"{tupla[0]} {tupla[1]} {tupla[2]} {tupla[3]} {tupla[4]} {tupla[5]} {tupla[6]}\n")
-                    
+                                    
             print(f"Texto guardado en '{ruta_archivo}' con éxito.")
         except Exception as e:
             print(f"Error al guardar el texto en '{ruta_archivo}': {str(e)}")
     else:
         print("No se ha seleccionado una carpeta de destino.")
 
+# --------------------------------------------------------------------------
+
+def graficar(t, x, y):
+    fig = plt.figure(tight_layout=True)
+    gs = gridspec.GridSpec(1, 2)
+
+    plot = [(t, x), (t, y)]
+    titles = ['x(t)', 'y(t)']
+
+    for i in range(2):
+        p = plot[i]       
+        ax = fig.add_subplot(gs[0, i])
+        ax.grid(True, linestyle='-.')
+        ax.plot(p[0], p[1])
+        ax.set_xlabel('t')
+        ax.set_ylabel(titles[i])
+
+    fig.align_labels()  # same as fig.align_xlabels(); fig.align_ylabels()
+
+    plt.show()
 # --------------------------------------------------------------------------
 
 # No se usa
