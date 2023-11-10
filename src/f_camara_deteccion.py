@@ -245,12 +245,17 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, lista_2):
     
     directorio_destino = filedialog.askdirectory(title="Selecciona una carpeta de destino")
     
+    date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
+    nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]+".txt"
+    print(nombre_archivo)
+    
     if directorio_destino:
-        nombre_archivo = "coordenadas.txt"
+        nombre_archivo = nombre_archivo
         ruta_archivo = f"{directorio_destino}/{nombre_archivo}"
         
         try:
             with open(ruta_archivo, 'w') as archivo:
+                archivo.write(f"{date}\n")
                 archivo.write(f"Tiempo total del proceso: {tiempo_a}\n")
                 archivo.write("\nCoordenadas objeto 1: \n")
                 archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)      Dist. centro (px)      Dist. centro (cm)\n")
