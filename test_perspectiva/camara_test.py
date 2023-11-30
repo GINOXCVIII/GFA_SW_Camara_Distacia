@@ -111,8 +111,11 @@ def unwarp(img, puntos):
 
 def test_captura(cam):
     cap = cv2.VideoCapture(cam)
-    w = cap.get(3)
-    h = cap.get(4)
+    try:
+        w = cap.get(3)
+        h = cap.get(4)
+    except ValueError:
+        w, h = 1, 1
     
     # print(w, h)
     
