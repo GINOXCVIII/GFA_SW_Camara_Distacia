@@ -17,6 +17,7 @@ high_red = np.array([180, 255, 255])
 rojo = (low_red, high_red, "Rojo")
 
 def detectar_rojo(frame, color):
+    
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, color[0], color[1])
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -30,7 +31,28 @@ def detectar_rojo(frame, color):
     
     return contours_sorted
 
-def interseccion(p1, p2, p3, p4):
+def ordenar_puntos(puntos):
+    
+    # Separo de a dos: los de y mas chico (que mas arriba estan) y los de y mas grande (mas abajo)
+    puntos_inferior = sorted(puntos, key=itemgetter(1), reverse=True)[:2]
+    puntos_superior = sorted(puntos, key=itemgetter(1))[:2]
+    
+    # Ordeno segun la distancia en x respecto al origen (ordeno de izquierda a derecha)
+    puntos_inferior = sorted(puntos_inferior, key=itemgetter(0))
+    puntos_superior = sorted(puntos_superior, key=itemgetter(0))
+        
+    puntos_ordenados = puntos_superior + puntos_inferior
+        
+    return puntos_ordenados
+
+def interseccion(puntos):
+    
+    puntos_ordenados = ordenar_puntos(puntos)
+    p1 = puntos_ordenados[0]
+    p2 = puntos_ordenados[3]
+    p3 = puntos_ordenados[2]
+    p4 = puntos_ordenados[1]
+    
     # Definir las ecuaciones de las rectas en la forma ax + by = c
     a1, b1, c1 = p2[1] - p1[1], p1[0] - p2[0], p1[0] * (p2[1] - p1[1]) - p1[1] * (p2[0] - p1[0])
     a2, b2, c2 = p4[1] - p3[1], p3[0] - p4[0], p3[0] * (p4[1] - p3[1]) - p3[1] * (p4[0] - p3[0])
@@ -48,6 +70,7 @@ def interseccion(p1, p2, p3, p4):
         return None
 
 def centros(frame, cont):
+    
     M = []
     if len(cont) >= 4:
         for c in cont:
@@ -69,19 +92,6 @@ def centros(frame, cont):
 
 def unwarp(img, puntos):
     
-    def ordenar_puntos(puntos):
-        # Separo de a dos: los de y mas chico (que mas arriba estan) y los de y mas grande (mas abajo)
-        puntos_inferior = sorted(puntos, key=itemgetter(1), reverse=True)[:2]
-        puntos_superior = sorted(puntos, key=itemgetter(1))[:2]
-        
-        # Ordeno segun la distancia en x respecto al origen (ordeno de izquierda a derecha)
-        puntos_inferior = sorted(puntos_inferior, key=itemgetter(0))
-        puntos_superior = sorted(puntos_superior, key=itemgetter(0))
-        
-        puntos_ordenados = puntos_superior + puntos_inferior
-        
-        return puntos_ordenados
-
     h, w = img.shape[:2]
     
     puntos_ordenados = ordenar_puntos(puntos)
@@ -110,6 +120,7 @@ def unwarp(img, puntos):
     return warped
 
 def test_captura(cam):
+    
     cap = cv2.VideoCapture(cam)
     try:
         w = cap.get(3)
@@ -134,7 +145,8 @@ def test_captura(cam):
         frame_cal = unwarp(frame, lista_de_puntos)
         frame_cal = cv2.flip(frame_cal, 0)
         
-        x = interseccion(lista_de_puntos[0], lista_de_puntos[1], lista_de_puntos[2], lista_de_puntos[3])
+        #x = interseccion(lista_de_puntos[0], lista_de_puntos[3], lista_de_puntos[1], lista_de_puntos[2])
+        x = interseccion(lista_de_puntos)
         if x != None:
             px_x = (int(x[0]), int(x[1]))
             print("Interseccion:", x, px_x, "\n")

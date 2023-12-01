@@ -7,7 +7,7 @@ Created on Thu Sep  7 16:55:48 2023
 """
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QCheckBox
 from PyQt5.QtGui import QColor, QPixmap
 from PyQt5.QtCore import Qt
 
@@ -48,6 +48,8 @@ class MiVentana(QMainWindow):
         
         self.color_1 = [11, 0, 0]
         self.color_2 = [11, 0, 0]
+        
+        self.estado = False
         
         self.setWindowTitle("GFA")  # Establecer el título de la ventana
         self.setGeometry(100, 100, w, h)  # Establecer la posición y el tamaño de la ventana
@@ -115,6 +117,11 @@ class MiVentana(QMainWindow):
         
         self.pushButton_2.clicked.connect(self.validar_ingreso_referencia)
         
+        # Checkbox para mostrar o no imagen calibrada
+        self.checkbox_estado = QCheckBox("Mostrar imagen calibrada", self)
+        self.checkbox_estado.setGeometry(10, 370, w-1, 21)
+        self.checkbox_estado.stateChanged.connect(self.actualizar_estado)
+        
         # Boton para iniciar la captura
         self.pushButton = QtWidgets.QPushButton("Iniciar", self)
         self.pushButton.setGeometry(QtCore.QRect(180, 400, 80, 22))
@@ -122,9 +129,9 @@ class MiVentana(QMainWindow):
         
         self.pushButton.clicked.connect(self.iniciar_captura)
         
-        self.label = QtWidgets.QLabel("La calibracion se hace con color Rojo", self)
-        self.label.setGeometry(QtCore.QRect(10, 370, w-1, 21))
-        self.label.setObjectName("label")
+        # self.label = QtWidgets.QLabel("La calibracion se hace con color Rojo", self)
+        # self.label.setGeometry(QtCore.QRect(10, 370, w-1, 21))
+        # self.label.setObjectName("label")
         
     def seleccion_fuente(self, item):
         item_text = item.text()
@@ -153,6 +160,7 @@ class MiVentana(QMainWindow):
     def validar_ingreso_referencia(self):
         rfs = self.lineEdit.text()
         # Hacer una comprobacion por si se ingresa una coma en lugar de un punto
+        # Hacer comprobacion cuando no se ingresa nada. Si se apreta Aplicar, se cierra
         self.ref_seleccionada = abs(float(rfs))
         print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
         
@@ -163,9 +171,9 @@ class MiVentana(QMainWindow):
             if self.cam_seleccionada == videopath:
                 self.cam_seleccionada = self.cargar_archivo_video()
                 cap = cv2.VideoCapture(self.cam_seleccionada)
-                fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
+                fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.estado)
             elif self.cam_seleccionada == camara:
-                fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada) # Una abominacion, pero anda por ahora
+                fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada, self.estado) # Una abominacion, pero anda por ahora
                 """
             elif self.cam_seleccionada != -1:
                 cap = cv2.VideoCapture(self.cam_seleccionada)
@@ -221,6 +229,10 @@ class MiVentana(QMainWindow):
     
     def tupla_color(self, c1, c2):
         return (np.array(c1), np.array(c2))
+        
+    def actualizar_estado(self):
+        self.estado = self.checkbox_estado.isChecked()
+        print(f"Estado actualizado: {self.estado}")
 
 app = QApplication(sys.argv)
 ventana = MiVentana()
