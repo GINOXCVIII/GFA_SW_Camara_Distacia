@@ -183,18 +183,42 @@ def calibracion(frame, ref, oc):
         return resized_frame
     
     centros_puntos_calibracion = centros(deteccion_rojo(frame), oc)
+    
     for c in centros_puntos_calibracion:
         cv2.circle(frame, c, 1, (0, 255, 255), -1)
+    
     puntos_ordenados = ordenar_puntos(centros_puntos_calibracion)
+    
+    x = interseccion(puntos_ordenados)
+    px_x = (int(x[0]), int(x[1]))
     
     frame_tr = unwarp(frame, puntos_ordenados)
     
     k = ref / frame_tr.shape[1]
     
-    return k, frame_tr
-        
+    return k, px_x, frame_tr
+    
 # --------------------------------------------------------------------------
-
+ 
+def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, px_x, oc_t, co, fc):
+    h, w = frame.shape[:2]
+    
+    cv2.putText(frame, f"Posicion x: {pos[0]} y: {pos[1]} px  x: {pos_cm[0]} y: {pos_cm[1]} cm", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+    cv2.putText(frame, f"Distancia al centro : {d} px  {d_cm} cm", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
+    
+    cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+    cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+    
+    if fc:
+        cv2.circle(frame, oc_t, 5, (0, 0, 255 ), -1)
+        # cv2.putText(frame, f"{oc_t}", oc_t, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+        return 0
+    else:
+        cv2.circle(frame, px_x, 5, (0, 0, 255 ), -1)
+        # cv2.putText(frame, f"{px_x}", px_x, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+        return 0
+    
+# --------------------------------------------------------------------------
 def iniciar_deteccion(color, cap, ref, check):
     
     def filtro_color(frame, color):
@@ -204,7 +228,7 @@ def iniciar_deteccion(color, cap, ref, check):
         
         return mask
     
-    posicion_obj1 = []
+    posicion_objeto = []
     
     tiempo_proceso = 0
     tiempo_acumulado = 0
@@ -213,18 +237,19 @@ def iniciar_deteccion(color, cap, ref, check):
         
     while True:
         
-        tic = time.time()
+        # tic = time.time()
         start_time = cv2.getTickCount()
         
         ret, frame = cap.read()
         
-        if not ret:
+        # Condicion de corte
+        if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
             t, x, y = [], [], []
-            for p in posicion_obj1:
+            for p in posicion_objeto:
                 t.append(p[0])
                 x.append(p[3])
                 y.append(p[4])
-            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_obj1)
+            guardar_coordenadas_txt(tiempo_acumulado, proporcion, posicion_objeto)
             graficar(t, x, y)
             cap.release()
             cv2.destroyAllWindows()
@@ -236,84 +261,52 @@ def iniciar_deteccion(color, cap, ref, check):
         except AttributeError:
             print("frame None", origen_coordenadas)
         
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        # mask = cv2.inRange(hsv, color[0], color[1]) # _, lower, higher
+        # Calibracion: obtengo frame calibrado
+        proporcion, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas) # Fijado para hacer calibracion con rojo
+        origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
+        
+        # Deteccion del objeto (por color)
+        hsv = cv2.cvtColor(frame_calibrado, cv2.COLOR_BGR2HSV)
         mask = filtro_color(hsv, color)
         
         # Dibujo del contorno de la figura más grande
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)
         
-        if len(contours_sorted) != 0:
+        if len(contours_sorted) > 0:
             area = cv2.contourArea(contours_sorted[0])
             nuevoContorno = cv2.convexHull(contours_sorted[0])
-            cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 2)
-                
-        # Proporcion cm-px y frame calibrado
-        cte_proporcion_cm_px, frame_calibrado = calibracion(frame, ref, origen_coordenadas) # Fijado para hacer calibracion con rojo
-        origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
+            cv2.drawContours(frame_calibrado, [nuevoContorno], -1, (200,5,255), 1)
         
-        # Marcar centro de la figura
-        c1 = centros(contours_sorted, origen_coordenadas)[0]
-        posicion = (c1[0] - origen_coordenadas[0], origen_coordenadas[1] - c1[1])
+        # Centro del objeto
+        centro_objeto = centros(contours_sorted, origen_transformado)[0]
+        cv2.circle(frame_calibrado, centro_objeto, 2, (50, 255, 0), -1)
+
+        # Mido posicion y distancia con el centro del frame calibrado
+        posicion = (centro_objeto[0] - origen_transformado[0], origen_transformado[1] - centro_objeto[1])
+        posicion_cm = (round(posicion[0] * proporcion, 4), round(posicion[1] * proporcion, 4))
            
-        # Calibracion. Optimizar para que calibre por cambios muy bruscos
-        dist_c1_c2 = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
-        
-        # cte_proporcion_cm_px = calibracion(frame, cap, rojo, ref) # Fijado para hacer calibracion con rojo
-        dist_c1_c2_cm = round(dist_c1_c2 * cte_proporcion_cm_px, 4)
+        distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
+        distancia_centro_cm = round(distancia_centro * proporcion, 4)
                
         # Calculo FPS reproduccion
         time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-        time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
         fps = 1.0 / time_taken
         
-        tiempo_proceso = time.time() - tic
+        # tiempo_proceso = time.time() - tic
+        tiempo_proceso = fps ** (-1)
 
         tiempo_acumulado += tiempo_proceso
-        
-        # Marcas y textos en frame
-        if check == False:
-            cv2.circle(frame, origen_coordenadas, 5, (0, 0, 255 ), -1)
-            cv2.circle(frame, (c1[0], c1[1]), 2, (0, 255, 255), -1)
-            cv2.putText(frame, f"{posicion}", (c1[0], c1[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-            cv2.putText(frame, f"Posicion x : {posicion[0]} px, Posicion y : {posicion[1]} px", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-            cv2.putText(frame, f"Distancia al centro : {dist_c1_c2} px  {dist_c1_c2_cm} cm", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
-            cv2.putText(frame, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-            cv2.putText(frame, f"FPS: {fps:.2f}", (560, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-        else:
-            cv2.circle(frame_calibrado, origen_transformado, 5, (0, 0, 255 ), -1)
-            mask_tr = filtro_color(frame_calibrado, color)
-            cont_tr, _ = cv2.findContours(mask_tr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cont_tr_sort = sorted(cont_tr, key=cv2.contourArea, reverse=True)
-            ctr = centros(cont_tr_sort, origen_transformado)[0]
-            cv2.circle(frame_calibrado, (ctr[0], ctr[1]), 3, (0, 255, 255), -1)
-            posicion_tr = (ctr[0] - origen_transformado[0], origen_transformado[1] - ctr[1])
-            cv2.putText(frame_calibrado, f"{posicion_tr}", (ctr[0], ctr[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
-            cv2.putText(frame_calibrado, f"Posicion x : {posicion_tr[0]} px, Posicion y : {posicion_tr[1]} px", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-            cv2.putText(frame_calibrado, f"Distancia al centro : {dist_c1_c2} px  {dist_c1_c2_cm} cm", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
-            cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 635), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-            cv2.putText(frame_calibrado, f"FPS: {fps:.2f}", (560, 635), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
 
         if check == False:
+            jajaja = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
             cv2.imshow('frame', frame)
         else:
+            jajaja = interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
             cv2.imshow('frame', frame_calibrado)            
         
         # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
-        posicion_obj1.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion[0]*cte_proporcion_cm_px, posicion[1]*cte_proporcion_cm_px, dist_c1_c2, dist_c1_c2_cm))
-  
-        if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
-            t, x, y = [], [], []
-            for p in posicion_obj1:
-                t.append(p[0])
-                x.append(p[3])
-                y.append(p[4])
-            guardar_coordenadas_txt(round(tiempo_acumulado, 2), cte_proporcion_cm_px, posicion_obj1)
-            graficar(t, x, y)
-            cap.release()
-            cv2.destroyAllWindows()
-            break
+        posicion_objeto.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
         
 # --------------------------------------------------------------------------
 
@@ -349,7 +342,10 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1):
 # --------------------------------------------------------------------------
 
 def graficar(t, x, y):
-    fig = plt.figure(tight_layout=True)
+    date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
+    nombre_plot = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]
+    
+    fig = plt.figure(tight_layout = True)
     gs = gridspec.GridSpec(1, 2)
 
     plot = [(t, x), (t, y)]
@@ -358,13 +354,13 @@ def graficar(t, x, y):
     for i in range(2):
         p = plot[i]       
         ax = fig.add_subplot(gs[0, i])
-        ax.grid(True, linestyle='-.')
+        ax.grid(True, linestyle = '-.')
         ax.plot(p[0], p[1])
         ax.set_xlabel('t')
         ax.set_ylabel(titles[i])
 
     fig.align_labels()
-
+    
     plt.show()
     
 # --------------------------------------------------------------------------
