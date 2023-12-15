@@ -112,36 +112,7 @@ def centros(cont, oc):
         return M
 
 # --------------------------------------------------------------------------    
-"""
-def calibracion(frame, camara, color, ref, oc):
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, color[0], color[1])
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
-    for i in contours_sorted:
-            area = cv2.contourArea(i)
-            x, y, w, h = cv2.boundingRect(i)
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 1)
-    
-    l_contours = centros(contours_sorted, oc)# + [oc, oc]
-    
-    c1 = l_contours[0]
-    c2 = l_contours[1]
 
-    dist_c1_c2 = np.sqrt((c1[0] - c2[0])**2 + (c1[1] - c2[1])**2)
-    
-    cv2.circle(frame, (c1[0], c1[1]), 3, (0, 255, 0), -1)
-    cv2.circle(frame, (c2[0], c2[1]), 3, (0, 255, 0), -1)
-    
-    # Proporcion
-    if dist_c1_c2 == 0:
-        k = 99999 # error
-    else:
-        k = ref / dist_c1_c2
-    
-    return k
-"""
 def calibracion(frame, ref, oc):
     
     def deteccion_rojo(f):
@@ -182,6 +153,8 @@ def calibracion(frame, ref, oc):
         
         return resized_frame
     
+    px_x = (int(frame.shape[0]/2), int(frame.shape[1]/2))
+    
     centros_puntos_calibracion = centros(deteccion_rojo(frame), oc)
     
     for c in centros_puntos_calibracion:
@@ -190,7 +163,8 @@ def calibracion(frame, ref, oc):
     puntos_ordenados = ordenar_puntos(centros_puntos_calibracion)
     
     x = interseccion(puntos_ordenados)
-    px_x = (int(x[0]), int(x[1]))
+    if x != None:
+        px_x = (int(x[0]), int(x[1]))
     
     frame_tr = unwarp(frame, puntos_ordenados)
     
@@ -362,66 +336,6 @@ def graficar(t, x, y):
     fig.align_labels()
     
     plt.show()
-    
-# --------------------------------------------------------------------------
-
-# No se usa
-def menu():
-    camaras = bc.camaras_disponibles()
-    camaras_nombre = bc.camaras_nombres()
-    i = 0
-    print("-- MENU --\n")
-    if len(camaras) > 0:
-        print(" ")
-        print("Cámaras disponibles:")
-        for camara in camaras:
-            print(f"    Cámara {camara}: {camaras_nombre[i]}")
-            i += 1
-            #print(camara)
-    else:
-        print("No se encontraron cámaras disponibles.")
-    
-    while True:
-        try:
-            id_camara = input("Ingrese numero de camara: ")
-            id_camara_int = int(id_camara)
-            if id_camara_int in camaras:
-                cap = cv2.VideoCapture(id_camara_int)
-                break
-            else:
-                print("Camara no disponible")
-        except ValueError:
-            if id_camara == "videopath":
-                print("videopath activado")
-                cap = cv2.VideoCapture(video_path)
-                break
-            else:
-                print("Ingreso no valido. No es numero\n")
-            
-    while True:
-        try:
-            i = input("Ingresar referencia para calibracion (centimetros) para calibracion: ")
-            x = float(i)
-            referencia_cm = x
-            break
-        except ValueError:
-            print("Ingreso no valido. No es numero\n")
-    
-    while True:
-        color = input("Ingrese color a medir (rojo (r) | azul (a) | verde (v)): ")
-        if color == "r":
-            iniciar_deteccion(colores[0], cap, referencia_cm)
-            break
-        elif color == "a":
-            iniciar_deteccion(colores[2], cap, referencia_cm)
-            break
-        elif color == "v":
-            iniciar_deteccion(colores[1], cap, referencia_cm)
-            break
-        else:
-            print("Ingreso no valido\n")
-            
-    return cap
 
 # --------------------------------------------------------------------------
 
