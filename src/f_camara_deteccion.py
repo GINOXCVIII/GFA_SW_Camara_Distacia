@@ -170,6 +170,8 @@ def calibracion(frame, ref, oc):
     
     k = ref / frame_tr.shape[1]
     
+    frame_tr = cv2.flip(frame_tr, 1) # Voltea horizontal
+    
     return k, px_x, frame_tr
     
 # --------------------------------------------------------------------------
@@ -272,12 +274,12 @@ def iniciar_deteccion(color, cap, ref, check):
 
         tiempo_acumulado += tiempo_proceso
 
-        if check == False:
-            jajaja = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
-            cv2.imshow('frame', frame)
-        else:
+        if check:
             jajaja = interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
-            cv2.imshow('frame', frame_calibrado)            
+            cv2.imshow('frame', frame_calibrado)  
+        else:
+            jajaja = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
+            cv2.imshow('frame', frame)         
         
         # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
         posicion_objeto.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
