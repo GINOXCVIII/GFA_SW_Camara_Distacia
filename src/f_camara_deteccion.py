@@ -175,26 +175,6 @@ def calibracion(frame, ref, oc):
     return k, px_x, frame_tr
     
 # --------------------------------------------------------------------------
- 
-def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, px_x, oc_t, co, fc):
-    h, w = frame.shape[:2]
-    
-    cv2.putText(frame, f"Posicion x: {pos[0]} y: {pos[1]} px  x: {pos_cm[0]} y: {pos_cm[1]} cm", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-    cv2.putText(frame, f"Distancia al centro : {d} px  {d_cm} cm", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
-    
-    cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-    cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-    
-    if fc:
-        cv2.circle(frame, oc_t, 5, (0, 0, 255 ), -1)
-        # cv2.putText(frame, f"{oc_t}", oc_t, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        return 0
-    else:
-        cv2.circle(frame, px_x, 5, (0, 0, 255 ), -1)
-        # cv2.putText(frame, f"{px_x}", px_x, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        return 0
-    
-# --------------------------------------------------------------------------
 def iniciar_deteccion(color, cap, ref, check):
     
     def filtro_color(frame, color):
@@ -203,47 +183,11 @@ def iniciar_deteccion(color, cap, ref, check):
         mask = cv2.dilate(mask, None, iterations = 1)
         
         return mask
-    
-    posicion_objeto = []
-    
-    tiempo_proceso = 0
-    tiempo_acumulado = 0
-    cte_proporcion_cm_px = 0
-    origen_coordenadas = (0, 0)
         
-    while True:
-        
-        # tic = time.time()
-        start_time = cv2.getTickCount()
-        
-        ret, frame = cap.read()
-        
-        # Condicion de corte
-        if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
-            t, x, y = [], [], []
-            for p in posicion_objeto:
-                t.append(p[0])
-                x.append(p[3])
-                y.append(p[4])
-            guardar_coordenadas_txt(tiempo_acumulado, proporcion, posicion_objeto)
-            graficar(t, x, y)
-            cap.release()
-            cv2.destroyAllWindows()
-            break
-            
-        try:
-            h, w = frame.shape[:2]
-            origen_coordenadas = (int(w/2), int(h/2))
-        except AttributeError:
-            print("frame None", origen_coordenadas)
-        
-        # Calibracion: obtengo frame calibrado
-        proporcion, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas) # Fijado para hacer calibracion con rojo
-        origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
-        
+    def deteccion_objeto(frame, c):
         # Deteccion del objeto (por color)
-        hsv = cv2.cvtColor(frame_calibrado, cv2.COLOR_BGR2HSV)
-        mask = filtro_color(hsv, color)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask = filtro_color(hsv, c)
         
         # Dibujo del contorno de la figura más grande
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -252,38 +196,121 @@ def iniciar_deteccion(color, cap, ref, check):
         if len(contours_sorted) > 0:
             area = cv2.contourArea(contours_sorted[0])
             nuevoContorno = cv2.convexHull(contours_sorted[0])
-            cv2.drawContours(frame_calibrado, [nuevoContorno], -1, (200,5,255), 1)
+            cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
+            
+        return contours_sorted
         
+    def dibujo_centro_figura(frame, c, origen):
+        contours_sorted = deteccion_objeto(frame, c)
+            
         # Centro del objeto
-        centro_objeto = centros(contours_sorted, origen_transformado)[0]
-        cv2.circle(frame_calibrado, centro_objeto, 2, (50, 255, 0), -1)
+        centro_objeto = centros(contours_sorted, origen)[0]
+        cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
 
         # Mido posicion y distancia con el centro del frame calibrado
-        posicion = (centro_objeto[0] - origen_transformado[0], origen_transformado[1] - centro_objeto[1])
+        posicion = (centro_objeto[0] - origen[0], origen[1] - centro_objeto[1])
         posicion_cm = (round(posicion[0] * proporcion, 4), round(posicion[1] * proporcion, 4))
-           
+               
         distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
         distancia_centro_cm = round(distancia_centro * proporcion, 4)
-               
-        # Calculo FPS reproduccion
-        time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-        fps = 1.0 / time_taken
+            
+        return centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm
         
-        # tiempo_proceso = time.time() - tic
-        tiempo_proceso = fps ** (-1)
-
-        tiempo_acumulado += tiempo_proceso
-
-        if check:
-            jajaja = interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
-            cv2.imshow('frame', frame_calibrado)  
+    def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, px_x, oc_t, co, fc):
+        h, w = frame.shape[:2]
+        
+        cv2.putText(frame, f"Posicion x: {pos[0]} y: {pos[1]} px  x: {pos_cm[0]} y: {pos_cm[1]} cm", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+        cv2.putText(frame, f"Distancia al centro : {d} px  {d_cm} cm", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
+        
+        cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+        cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+        
+        if fc:
+            cv2.circle(frame, oc_t, 5, (0, 0, 255 ), -1)
+            # cv2.putText(frame, f"{oc_t}", oc_t, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            return 0
         else:
-            jajaja = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
-            cv2.imshow('frame', frame)         
+            cv2.circle(frame, px_x, 5, (0, 0, 255 ), -1)
+            # cv2.putText(frame, f"{px_x}", px_x, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            return 0
+    
+    posicion_objeto = []
+    
+    tiempo_proceso = 0
+    tiempo_acumulado = 0
+    cte_proporcion_cm_px = 0
+    origen_coordenadas = (0, 0)
+    
+    reproduccion_pausada = False
         
-        # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
-        posicion_objeto.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+    while True:
+        # Como arreglo la tecla de pausar/reanudar para que funcione bien junto a q. ¿quiza el not ret sea el problema?
+        """
+        if (cv2.waitKey(1) & 0xFF == ord('p')):
+            reproduccion_pausada = not reproduccion_pausada
+        """
+        # tic = time.time()
+        start_time = cv2.getTickCount()
         
+        if not reproduccion_pausada:
+            ret, frame = cap.read()
+            
+            # Condicion de corte
+            if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
+                t, x, y = [], [], []
+                for p in posicion_objeto:
+                    t.append(p[0])
+                    x.append(p[3])
+                    y.append(p[4])
+                guardar_coordenadas_txt(tiempo_acumulado, proporcion, posicion_objeto)
+                graficar(t, x, y)
+                cap.release()
+                cv2.destroyAllWindows()
+                break
+                
+            try:
+                h, w = frame.shape[:2]
+                origen_coordenadas = (int(w/2), int(h/2))
+            except AttributeError:
+                print("frame None", origen_coordenadas)
+            
+            # Calibracion: obtengo frame calibrado
+            proporcion, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas) # Fijado para hacer calibracion con rojo
+            origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
+            
+            if check:
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame_calibrado, color, origen_transformado)
+                
+                # Calculo FPS reproduccion
+                time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
+                fps = 1.0 / time_taken
+            
+                # tiempo_proceso = time.time() - tic
+                tiempo_proceso = fps ** (-1)
+
+                tiempo_acumulado += tiempo_proceso
+                
+                obo = interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
+                cv2.imshow('frame', frame_calibrado)
+            
+            else:
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame, color, origen_coordenadas)
+                
+                # Calculo FPS reproduccion
+                time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
+                fps = 1.0 / time_taken
+            
+                # tiempo_proceso = time.time() - tic
+                tiempo_proceso = fps ** (-1)
+
+                tiempo_acumulado += tiempo_proceso
+                
+                obo = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
+                cv2.imshow('frame', frame)
+            
+            # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
+            posicion_objeto.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+            
 # --------------------------------------------------------------------------
 
 def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1):
