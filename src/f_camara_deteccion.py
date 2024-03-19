@@ -113,7 +113,7 @@ def centros(cont, oc):
 
 # --------------------------------------------------------------------------    
 
-def calibracion(frame, ref, oc):
+def calibracion(frame, ref, oc, check):
     
     def deteccion_rojo(f):
         
@@ -168,7 +168,12 @@ def calibracion(frame, ref, oc):
     
     frame_tr = unwarp(frame, puntos_ordenados)
     
-    k = ref / frame_tr.shape[1]
+    if check:
+        k = ref / frame_tr.shape[1] # No debo usar k para el frame original y el transformado
+    else:
+        distancia = (puntos_ordenados[2][0] - puntos_ordenados[3][0], puntos_ordenados[2][1] - puntos_ordenados[3][1]) 
+        d = np.sqrt(distancia[0]**2 + distancia[1]**2)
+        k = ref / d
     
     frame_tr = cv2.flip(frame_tr, 1) # Voltea horizontal
     
@@ -200,7 +205,7 @@ def iniciar_deteccion(color, cap, ref, check):
             
         return contours_sorted
         
-    def dibujo_centro_figura(frame, c, origen):
+    def dibujo_centro_figura(frame, c, origen, proporcion):
         contours_sorted = deteccion_objeto(frame, c)
             
         # Centro del objeto
@@ -213,6 +218,8 @@ def iniciar_deteccion(color, cap, ref, check):
                
         distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
         distancia_centro_cm = round(distancia_centro * proporcion, 4)
+        
+        print(proporcion)
             
         return centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm
         
@@ -228,12 +235,11 @@ def iniciar_deteccion(color, cap, ref, check):
         if fc:
             cv2.circle(frame, oc_t, 5, (0, 0, 255 ), -1)
             # cv2.putText(frame, f"{oc_t}", oc_t, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-            return 0
         else:
             cv2.circle(frame, px_x, 5, (0, 0, 255 ), -1)
             # cv2.putText(frame, f"{px_x}", px_x, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-            return 0
     
+    # ----------------------------------------------------------------------
     posicion_objeto = []
     
     tiempo_proceso = 0
@@ -246,23 +252,22 @@ def iniciar_deteccion(color, cap, ref, check):
     while True:
         # Como arreglo la tecla de pausar/reanudar para que funcione bien junto a q. ¿quiza el not ret sea el problema?
         """
-        if (cv2.waitKey(1) & 0xFF == ord('p')):
+        if (cv2.pollKey() & 0xFF == ord('p')):
             reproduccion_pausada = not reproduccion_pausada
-        """
-        # tic = time.time()
+        """    
         start_time = cv2.getTickCount()
         
         if not reproduccion_pausada:
             ret, frame = cap.read()
             
             # Condicion de corte
-            if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
+            if (cv2.pollKey() & 0xFF == ord('q')) or (not ret):
                 t, x, y = [], [], []
                 for p in posicion_objeto:
                     t.append(p[0])
                     x.append(p[3])
                     y.append(p[4])
-                guardar_coordenadas_txt(tiempo_acumulado, proporcion, posicion_objeto)
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto)
                 graficar(t, x, y)
                 cap.release()
                 cv2.destroyAllWindows()
@@ -275,37 +280,29 @@ def iniciar_deteccion(color, cap, ref, check):
                 print("frame None", origen_coordenadas)
             
             # Calibracion: obtengo frame calibrado
-            proporcion, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas) # Fijado para hacer calibracion con rojo
+            cte_proporcion_cm_px, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas, check) # Fijado para hacer calibracion con rojo
             origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
             
             if check:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame_calibrado, color, origen_transformado)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame_calibrado, color, origen_transformado, cte_proporcion_cm_px)
                 
                 # Calculo FPS reproduccion
-                time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-                fps = 1.0 / time_taken
-            
-                # tiempo_proceso = time.time() - tic
-                tiempo_proceso = fps ** (-1)
-
+                tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
+                fps = 1.0 / tiempo_proceso
                 tiempo_acumulado += tiempo_proceso
                 
-                obo = interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
+                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
                 cv2.imshow('frame', frame_calibrado)
             
             else:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame, color, origen_coordenadas)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame, color, origen_coordenadas, cte_proporcion_cm_px)
                 
                 # Calculo FPS reproduccion
-                time_taken = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-                fps = 1.0 / time_taken
-            
-                # tiempo_proceso = time.time() - tic
-                tiempo_proceso = fps ** (-1)
-
+                tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
+                fps = 1.0 / tiempo_proceso
                 tiempo_acumulado += tiempo_proceso
                 
-                obo = interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
+                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
                 cv2.imshow('frame', frame)
             
             # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
@@ -371,11 +368,3 @@ def graficar(t, x, y):
 def hard_inicio(c, r, check):
     cap = cv2.VideoCapture(0)
     iniciar_deteccion(c, cap, r, check)
-
-# --------------------------------------------------------------------------
-
-# hard_inicio(rojo, 10)
-
-   # cap.release()
-   # cv2.destroyAllWindows()
-#cap.closeAllWindow()
