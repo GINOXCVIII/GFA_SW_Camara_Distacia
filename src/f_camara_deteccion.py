@@ -138,8 +138,7 @@ def calibracion(frame, ref, oc, check):
                           puntos_ordenados[1],
                           puntos_ordenados[2],
                           puntos_ordenados[3]])
-                          
-        # print("Dimensiones wxh", w, "x", h)
+
         dst = np.float32([(w, 0),
                         (0, 0),
                         (w, h),
@@ -149,11 +148,9 @@ def calibracion(frame, ref, oc, check):
 
         warped = cv2.warpPerspective(f, M, (w, h), flags=cv2.INTER_LINEAR)
         
-        resized_frame = cv2.resize(warped, (640, 640), interpolation = cv2.INTER_LINEAR)
+        resized_frame = cv2.resize(warped, (350, 350), interpolation = cv2.INTER_LINEAR)
         
         return resized_frame
-    
-    px_x = (int(frame.shape[0]/2), int(frame.shape[1]/2))
     
     centros_puntos_calibracion = centros(deteccion_rojo(frame), oc)
     
@@ -161,38 +158,43 @@ def calibracion(frame, ref, oc, check):
         cv2.circle(frame, c, 1, (0, 255, 255), -1)
     
     puntos_ordenados = ordenar_puntos(centros_puntos_calibracion)
-    
-    x = interseccion(puntos_ordenados)
-    if x != None:
-        px_x = (int(x[0]), int(x[1]))
-    
-    frame_tr = unwarp(frame, puntos_ordenados)
-    
+
     if check:
-        k = ref / frame_tr.shape[1] # No debo usar k para el frame original y el transformado
+        frame_tr = unwarp(frame, puntos_ordenados)
+        k = ref / frame_tr.shape[1]
+        frame_tr = cv2.flip(frame_tr, 1)
+        px_x = (int(frame_tr.shape[1]/2), int(frame_tr.shape[0]/2))
+        
+        return k, px_x, frame_tr
     else:
+        x = interseccion(puntos_ordenados)
+        if x != None:
+            px_x = (int(x[0]), int(x[1]))
+        else:
+            px_x = (int(frame.shape[1]/2), int(frame.shape[0]/2))
+        
         distancia = (puntos_ordenados[2][0] - puntos_ordenados[3][0], puntos_ordenados[2][1] - puntos_ordenados[3][1]) 
         d = np.sqrt(distancia[0]**2 + distancia[1]**2)
         k = ref / d
-    
-    frame_tr = cv2.flip(frame_tr, 1) # Voltea horizontal
-    
-    return k, px_x, frame_tr
+        
+        return k, px_x, frame
     
 # --------------------------------------------------------------------------
 def iniciar_deteccion(color, cap, ref, check):
-    
-    def filtro_color(frame, color):
-        mask = cv2.inRange(frame, color[0], color[1]) # _, lower, higher
-        mask = cv2.erode(mask, None, iterations = 1)
-        mask = cv2.dilate(mask, None, iterations = 1)
-        
-        return mask
-        
+
     def deteccion_objeto(frame, c):
+        # Vale la pena usarla? Es mucha la mejora a cambio de reducir el rendimiento?
+        def filtro_color(frame, color):
+            mask = cv2.inRange(frame, color[0], color[1]) # _, lower, higher
+            mask = cv2.erode(mask, None, iterations = 1)
+            mask = cv2.dilate(mask, None, iterations = 1)
+            
+            return mask
+        
         # Deteccion del objeto (por color)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = filtro_color(hsv, c)
+        # mask = cv2.inRange(frame, color[0], color[1])
         
         # Dibujo del contorno de la figura más grande
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -205,25 +207,23 @@ def iniciar_deteccion(color, cap, ref, check):
             
         return contours_sorted
         
-    def dibujo_centro_figura(frame, c, origen, proporcion):
+    def seguimiento_objeto(frame, c, origen, proporcion):
         contours_sorted = deteccion_objeto(frame, c)
             
         # Centro del objeto
         centro_objeto = centros(contours_sorted, origen)[0]
         cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
 
-        # Mido posicion y distancia con el centro del frame calibrado
+        # Mido posicion y distancia respecto al centro del frame
         posicion = (centro_objeto[0] - origen[0], origen[1] - centro_objeto[1])
         posicion_cm = (round(posicion[0] * proporcion, 4), round(posicion[1] * proporcion, 4))
                
         distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
         distancia_centro_cm = round(distancia_centro * proporcion, 4)
-        
-        print(proporcion)
             
         return centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm
-        
-    def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, px_x, oc_t, co, fc):
+    
+    def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, ct):
         h, w = frame.shape[:2]
         
         cv2.putText(frame, f"Posicion x: {pos[0]} y: {pos[1]} px  x: {pos_cm[0]} y: {pos_cm[1]} cm", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
@@ -232,13 +232,8 @@ def iniciar_deteccion(color, cap, ref, check):
         cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         
-        if fc:
-            cv2.circle(frame, oc_t, 5, (0, 0, 255 ), -1)
-            # cv2.putText(frame, f"{oc_t}", oc_t, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        else:
-            cv2.circle(frame, px_x, 5, (0, 0, 255 ), -1)
-            # cv2.putText(frame, f"{px_x}", px_x, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-    
+        cv2.circle(frame, ct, 5, (0, 0, 255 ), -1)
+        
     # ----------------------------------------------------------------------
     posicion_objeto = []
     
@@ -281,28 +276,27 @@ def iniciar_deteccion(color, cap, ref, check):
             
             # Calibracion: obtengo frame calibrado
             cte_proporcion_cm_px, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas, check) # Fijado para hacer calibracion con rojo
-            origen_transformado = (int(frame_calibrado.shape[0]/2), int(frame_calibrado.shape[1]/2))
-            
+
             if check:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame_calibrado, color, origen_transformado, cte_proporcion_cm_px)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, centro_plano, cte_proporcion_cm_px)
                 
                 # Calculo FPS reproduccion
                 tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
                 fps = 1.0 / tiempo_proceso
                 tiempo_acumulado += tiempo_proceso
                 
-                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, True)
+                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano)
                 cv2.imshow('frame', frame_calibrado)
             
             else:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = dibujo_centro_figura(frame, color, origen_coordenadas, cte_proporcion_cm_px)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame, color, origen_coordenadas, cte_proporcion_cm_px)
                 
                 # Calculo FPS reproduccion
                 tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
                 fps = 1.0 / tiempo_proceso
                 tiempo_acumulado += tiempo_proceso
                 
-                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano, origen_transformado, centro_objeto, False)
+                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, centro_plano)
                 cv2.imshow('frame', frame)
             
             # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
