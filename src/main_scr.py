@@ -40,8 +40,8 @@ camara = "Camara"
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
-        w = 405
-        h = 450
+        w = 345
+        h = 380
         cam_seleccionada = -1
         col_seleccionado = -1
         ref_seleccionada = -1
@@ -57,7 +57,7 @@ class MiVentana(QMainWindow):
         
         # Lista de camaras
         self.listView = QListWidget(self)
-        self.listView.setGeometry(QtCore.QRect(10, 40, 151, 251))
+        self.listView.setGeometry(QtCore.QRect(10, 40, 151, 241))
         self.listView.setObjectName("listView")
         self.listView.addItem(camara)
         """
@@ -90,7 +90,7 @@ class MiVentana(QMainWindow):
         # Slider de tolerancia
         self.slider_tolerancia = self.crear_slider()
         self.slider_tolerancia.setRange(0, 10)  # Rango de matiz (0-359 grados)
-        self.slider_tolerancia.setGeometry(QtCore.QRect(180, 270, 151, 20))
+        self.slider_tolerancia.setGeometry(QtCore.QRect(180, 265, 151, 20))
         
         self.tolerancia_anterior = self.slider_tolerancia.value()
         
@@ -104,27 +104,27 @@ class MiVentana(QMainWindow):
         # Cuadro de entrada de la referencia
         self.lineEdit = QLineEdit(self)
         self.lineEdit.setValidator(QtGui.QDoubleValidator()) # Solo se pueden ingresar numeros
-        self.lineEdit.setGeometry(QtCore.QRect(130, 330, 113, 22))
+        self.lineEdit.setGeometry(QtCore.QRect(165, h-90, 78, 22))
         self.lineEdit.setObjectName("lineEdit")
         
-        self.label = QtWidgets.QLabel("Referencia (cm)", self)
-        self.label.setGeometry(QtCore.QRect(10, 330, 141, 21))
+        self.label = QtWidgets.QLabel("Longitud lado inferior", self)
+        self.label.setGeometry(QtCore.QRect(10, h-90, 156, 21))
         self.label.setObjectName("label")
         
         self.pushButton_2 = QtWidgets.QPushButton("Aplicar", self)
-        self.pushButton_2.setGeometry(QtCore.QRect(253, 330, 80, 22))
+        self.pushButton_2.setGeometry(QtCore.QRect(253, h-90, 80, 22))
         self.pushButton_2.setObjectName("pushButton_2")
         
         self.pushButton_2.clicked.connect(self.validar_ingreso_referencia)
         
         # Checkbox para mostrar o no imagen calibrada
         self.checkbox_estado = QCheckBox("Mostrar imagen calibrada", self)
-        self.checkbox_estado.setGeometry(10, 370, w-1, 21)
+        self.checkbox_estado.setGeometry(10, h-60, w-1, 21)
         self.checkbox_estado.stateChanged.connect(self.actualizar_estado)
         
         # Boton para iniciar la captura
         self.pushButton = QtWidgets.QPushButton("Iniciar", self)
-        self.pushButton.setGeometry(QtCore.QRect(180, 400, 80, 22))
+        self.pushButton.setGeometry(QtCore.QRect(132, h-30, 80, 22))
         self.pushButton.setObjectName("pushButton")
         
         self.pushButton.clicked.connect(self.iniciar_captura)
@@ -141,6 +141,7 @@ class MiVentana(QMainWindow):
             self.seleccion_cam(item)
         
     def seleccion_cam(self, item):
+        # Hacer un chequeo por si no hay camara
         print("camara")
         self.cam_seleccionada = camara
         

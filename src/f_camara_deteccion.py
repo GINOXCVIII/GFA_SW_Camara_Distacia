@@ -160,7 +160,7 @@ def calibracion(frame, ref, oc, check):
     puntos_ordenados = ordenar_puntos(centros_puntos_calibracion)
 
     if check:
-        frame_tr = unwarp(frame, puntos_ordenados)
+        frame_tr = unwarp(frame, puntos_ordenados)        
         k = ref / frame_tr.shape[1]
         frame_tr = cv2.flip(frame_tr, 1)
         px_x = (int(frame_tr.shape[1]/2), int(frame_tr.shape[0]/2))
@@ -173,9 +173,9 @@ def calibracion(frame, ref, oc, check):
         else:
             px_x = (int(frame.shape[1]/2), int(frame.shape[0]/2))
         
-        distancia = (puntos_ordenados[2][0] - puntos_ordenados[3][0], puntos_ordenados[2][1] - puntos_ordenados[3][1]) 
-        d = np.sqrt(distancia[0]**2 + distancia[1]**2)
-        k = ref / d
+        vector_puntos_inferiores = (puntos_ordenados[2][0] - puntos_ordenados[3][0], puntos_ordenados[2][1] - puntos_ordenados[3][1]) 
+        distancia = np.sqrt(vector_puntos_inferiores[0]**2 + vector_puntos_inferiores[1]**2)
+        k = ref / distancia
         
         return k, px_x, frame
     
@@ -230,7 +230,7 @@ def iniciar_deteccion(color, cap, ref, check):
         cv2.putText(frame, f"Distancia al centro : {d} px  {d_cm} cm", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0  ), 1)
         
         cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-        cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+        # cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         
         cv2.circle(frame, ct, 5, (0, 0, 255 ), -1)
         
