@@ -51,7 +51,7 @@ class MiVentana(QMainWindow):
         
         self.estado = False
         
-        self.setWindowTitle("GFA")  # Establecer el título de la ventana
+        self.setWindowTitle("tonChan")  # Establecer el título de la ventana
         self.setGeometry(100, 100, w, h)  # Establecer la posición y el tamaño de la ventana
         self.setFixedSize(w, h)
         
