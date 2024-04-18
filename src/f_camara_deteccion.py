@@ -117,8 +117,14 @@ def calibracion(frame, ref, oc, check):
     
     def deteccion_rojo(f):
         
+        brightness = 8
+        contrast = 1.3
+        
         hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
+        # Hay que ver que tan util es
+        mask = cv2.addWeighted(hsv, contrast, np.zeros(hsv.shape, hsv.dtype), 0, brightness)
         mask = cv2.inRange(hsv, rojo[0], rojo[1])
+        
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:4]
@@ -151,6 +157,8 @@ def calibracion(frame, ref, oc, check):
         resized_frame = cv2.resize(warped, (350, 350), interpolation = cv2.INTER_LINEAR)
         
         return resized_frame
+    
+    # ----------------------------------------------------------------------
     
     centros_puntos_calibracion = centros(deteccion_rojo(frame), oc)
     
