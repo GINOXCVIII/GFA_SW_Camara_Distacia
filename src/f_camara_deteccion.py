@@ -372,6 +372,7 @@ def graficar(t, x, y):
         ax = fig.add_subplot(gs[0, i])
         ax.grid(True, linestyle = '-.')
         ax.plot(p[0], p[1])
+        plt.xticks(range(0, int(max(t))+1, 3))
         ax.set_xlabel('t')
         ax.set_ylabel(titles[i])
 
