@@ -187,63 +187,68 @@ def calibracion(frame, ref, oc, check):
         k = ref / distancia
         
         return k, px_x, frame
-    
-# --------------------------------------------------------------------------
-def iniciar_deteccion(color, cap, ref, check):
 
-    def deteccion_objeto(frame, c):
-        # Vale la pena usarla? Es mucha la mejora a cambio de reducir el rendimiento?
-        def filtro_color(frame, color):
-            mask = cv2.inRange(frame, color[0], color[1]) # _, lower, higher
-            mask = cv2.erode(mask, None, iterations = 1)
-            mask = cv2.dilate(mask, None, iterations = 1)
+# --------------------------------------------------------------------------
+
+def deteccion_objeto(frame, c):
+    # Vale la pena usarla? Es mucha la mejora a cambio de reducir el rendimiento?
+    def filtro_color(frame, color):
+        mask = cv2.inRange(frame, color[0], color[1]) # _, lower, higher
+        mask = cv2.erode(mask, None, iterations = 1)
+        mask = cv2.dilate(mask, None, iterations = 1)
             
-            return mask
+        return mask
         
-        # Deteccion del objeto (por color)
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = filtro_color(hsv, c)
-        # mask = cv2.inRange(frame, color[0], color[1])
+    # Deteccion del objeto (por color)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = filtro_color(hsv, c)
+    # mask = cv2.inRange(frame, color[0], color[1])
+
+    # Dibujo del contorno de la figura más grande
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)
         
-        # Dibujo del contorno de la figura más grande
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)
-        
-        # Quiero remarcar mas de un objeto
-        if len(contours_sorted) > 0:
-            area = cv2.contourArea(contours_sorted[0])
-            nuevoContorno = cv2.convexHull(contours_sorted[0])
+    # Quiero remarcar mas de un objeto
+    if len(contours_sorted) > 0:
+        area = cv2.contourArea(contours_sorted[0])
+        nuevoContorno = cv2.convexHull(contours_sorted[0])
+        cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
+        """ Como puedo hacer esta logica de forma que pueda detectar los objetos que se me canten
+        if len(contours_sorted) > 1:
+            area2 = cv2.contourArea(contours_sorted[1])
+            nuevoContorno = cv2.convexHull(contours_sorted[1])
             cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
-            """ Como puedo hacer esta logica de forma que pueda detectar los objetos que se me canten
-            if len(contours_sorted) > 1:
-                area2 = cv2.contourArea(contours_sorted[1])
-                nuevoContorno = cv2.convexHull(contours_sorted[1])
-                cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
                 
-                if len(contours_sorted) > 2:
-                    area3 = cv2.contourArea(contours_sorted[2])
-                    nuevoContorno = cv2.convexHull(contours_sorted[2])
-                    cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
-            """            
-        return contours_sorted
-        
-    def seguimiento_objeto(frame, c, origen, proporcion):
-        contours_sorted = deteccion_objeto(frame, c)
+            if len(contours_sorted) > 2:
+                area3 = cv2.contourArea(contours_sorted[2])
+                nuevoContorno = cv2.convexHull(contours_sorted[2])
+                cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
+        """            
+    return contours_sorted
+
+# --------------------------------------------------------------------------
+
+def seguimiento_objeto(frame, c, origen, proporcion):
+    contours_sorted = deteccion_objeto(frame, c)
+
+    # Centro del objeto
+    centro_objeto = centros(contours_sorted, origen)[0]
+    cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
+
+    # Mido posicion y distancia respecto al centro del frame
+    posicion = (centro_objeto[0] - origen[0], origen[1] - centro_objeto[1])
+    posicion_cm = (round(posicion[0] * proporcion, 4), round(posicion[1] * proporcion, 4))
+
+    distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
+    distancia_centro_cm = round(distancia_centro * proporcion, 4)
             
-        # Centro del objeto
-        centro_objeto = centros(contours_sorted, origen)[0]
-        cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
-        
-        # Mido posicion y distancia respecto al centro del frame
-        posicion = (centro_objeto[0] - origen[0], origen[1] - centro_objeto[1])
-        posicion_cm = (round(posicion[0] * proporcion, 4), round(posicion[1] * proporcion, 4))
-               
-        distancia_centro = int(np.sqrt(posicion[0]**2 + posicion[1]**2))
-        distancia_centro_cm = round(distancia_centro * proporcion, 4)
-            
-        return centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm
+    return centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm
+
+# --------------------------------------------------------------------------
+
+def iniciar_deteccion(color, cap, ref, check):
     
-    def interfaz_texto(frame, pos, pos_cm, d, d_cm, fps, ct):
+    def interfaz_texto(frame, pos, pos_cm, d, d_cm, ct):
         h, w = frame.shape[:2]
         
         cv2.putText(frame, f"Posicion x: {pos[0]} y: {pos[1]} px  x: {pos_cm[0]} y: {pos_cm[1]} cm", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
@@ -263,6 +268,8 @@ def iniciar_deteccion(color, cap, ref, check):
     centro_plano = (0, 0)
     
     reproduccion_pausada = False
+    
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         
     while True:
         # Como arreglo la tecla de pausar/reanudar para que funcione bien junto a q. ¿quiza el not ret sea el problema?
@@ -296,33 +303,23 @@ def iniciar_deteccion(color, cap, ref, check):
                 print("frame None", centro_plano)
             
             # Calibracion: obtengo frame calibrado
-            # cte_proporcion_cm_px, centro_plano, frame_calibrado = calibracion(frame, ref, origen_coordenadas, check) # Fijado para hacer calibracion con rojo
             cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, check) # Fijado para hacer calibracion con rojo
 
+            # Obtengo tiempos correctos, solo para archivos de video
             if check:
                 centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
-                
-                # Calculo FPS reproduccion
-                tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-                fps = 1.0 / tiempo_proceso
-                tiempo_acumulado += tiempo_proceso
-                
-                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, origen_coordenadas)
+                tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
+                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                 cv2.imshow('frame', frame_calibrado)
             
             else:
                 centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame, color, origen_coordenadas, cte_proporcion_cm_px)
-                
-                # Calculo FPS reproduccion
-                tiempo_proceso = (cv2.getTickCount() - start_time) / cv2.getTickFrequency()
-                fps = 1.0 / tiempo_proceso
-                tiempo_acumulado += tiempo_proceso
-                
-                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, fps, origen_coordenadas)
+                tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
+                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                 cv2.imshow('frame', frame)
             
             # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
-            posicion_objeto.append((round(tiempo_acumulado, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+            posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
             
 # --------------------------------------------------------------------------
 
