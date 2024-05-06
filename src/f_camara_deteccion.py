@@ -112,9 +112,29 @@ def centros(cont, oc):
         return M
 
 # --------------------------------------------------------------------------    
+def deteccion_rojo(f):
+        
+    brightness = 8
+    contrast = 1.3
+        
+    hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
+    # Hay que ver que tan util es
+    mask = cv2.addWeighted(hsv, contrast, np.zeros(hsv.shape, hsv.dtype), 0, brightness)
+    mask = cv2.inRange(hsv, rojo[0], rojo[1])
+        
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+    contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:4]
+        
+    for i in contours_sorted:
+        area = cv2.contourArea(i)
+        x, y, w, h = cv2.boundingRect(i)
+        cv2.rectangle(f, (x, y), (x+w, y+h), (0, 255, 0), 1)
+
+    return contours_sorted
 
 def calibracion(frame, ref, oc, check):
-    
+    """
     def deteccion_rojo(f):
         
         brightness = 8
@@ -135,7 +155,7 @@ def calibracion(frame, ref, oc, check):
             cv2.rectangle(f, (x, y), (x+w, y+h), (0, 255, 0), 1)
         
         return contours_sorted
-        
+    """  
     def unwarp(f, p):
         
         h, w = f.shape[:2]
@@ -213,17 +233,8 @@ def deteccion_objeto(frame, c):
         area = cv2.contourArea(contours_sorted[0])
         nuevoContorno = cv2.convexHull(contours_sorted[0])
         cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
-        """ Como puedo hacer esta logica de forma que pueda detectar los objetos que se me canten
-        if len(contours_sorted) > 1:
-            area2 = cv2.contourArea(contours_sorted[1])
-            nuevoContorno = cv2.convexHull(contours_sorted[1])
-            cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
-                
-            if len(contours_sorted) > 2:
-                area3 = cv2.contourArea(contours_sorted[2])
-                nuevoContorno = cv2.convexHull(contours_sorted[2])
-                cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
-        """            
+        # Como puedo hacer esta logica de forma que pueda detectar los objetos que se me canten
+
     return contours_sorted
 
 # --------------------------------------------------------------------------
@@ -246,7 +257,7 @@ def seguimiento_objeto(frame, c, origen, proporcion):
 
 # --------------------------------------------------------------------------
 
-def iniciar_deteccion(color, cap, ref, check):
+def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo):
     
     def interfaz_texto(frame, pos, pos_cm, d, d_cm, ct):
         h, w = frame.shape[:2]
@@ -290,8 +301,8 @@ def iniciar_deteccion(color, cap, ref, check):
                     t.append(p[0])
                     x.append(p[3])
                     y.append(p[4])
-                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto)
-                graficar(t, x, y)
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, nombre_archivo)
+                graficar(t[:-1], x[:-1], y[:-1]) # Revisar si es necesario, pero con la camara grafico cosas raras
                 cap.release()
                 cv2.destroyAllWindows()
                 break
@@ -303,38 +314,42 @@ def iniciar_deteccion(color, cap, ref, check):
                 print("frame None", centro_plano)
             
             # Calibracion: obtengo frame calibrado
-            cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, check) # Fijado para hacer calibracion con rojo
+            cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, mostrar_calibrado) # Fijado para hacer calibracion con rojo
 
             # Obtengo tiempos correctos, solo para archivos de video
-            if check:
+            if mostrar_calibrado:
                 centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
                 interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
-                cv2.imshow('frame', frame_calibrado)
+                if mostrar_frame:
+                    cv2.imshow('frame', frame_calibrado)
             
             else:
                 centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame, color, origen_coordenadas, cte_proporcion_cm_px)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
                 interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
-                cv2.imshow('frame', frame)
+                if mostrar_frame:
+                    cv2.imshow('frame', frame)
             
             # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
             posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
             
 # --------------------------------------------------------------------------
-
-def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1):
+    
+def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
+    # Cambiar para que la direccion donde guardar sea parametro
+    # Dar la opcion para guardar o no el txt
     root = tk.Tk()
     root.withdraw()
     
     directorio_destino = filedialog.askdirectory(title="Selecciona una carpeta de destino")
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
-    nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]+".txt"
+    nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
     print(nombre_archivo)
-    
+
     if directorio_destino:
-        nombre_archivo = nombre_archivo
+        # nombre_archivo = nombre_archivo
         ruta_archivo = f"{directorio_destino}/{nombre_archivo}"
         
         try:
@@ -355,6 +370,8 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1):
 # --------------------------------------------------------------------------
 
 def graficar(t, x, y):
+    print("le large de t", len(t), "la raiz:", np.sqrt(len(t)))
+    print(f"lagunos printeos: len(x): {len(x)} len(y): {len(y)}")
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_plot = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]
     
@@ -379,6 +396,6 @@ def graficar(t, x, y):
 
 # --------------------------------------------------------------------------
 
-def hard_inicio(c, r, check):
+def hard_inicio(c, r, mostrar_calibrado, mostrar_frame, nombre_archivo):
     cap = cv2.VideoCapture(0)
-    iniciar_deteccion(c, cap, r, check)
+    iniciar_deteccion(c, cap, r, mostrar_calibrado, mostrar_frame, nombre_archivo)
