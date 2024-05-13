@@ -15,7 +15,7 @@ import f_camara_deteccion as fcd
 
 # ----------------------------------------------------------------------
 
-def captura_video(color, directorio, flg_guardar):
+def captura_video(color, directorio, ref, check):
 	salida = []
 	objeto = []
 	
@@ -30,21 +30,29 @@ def captura_video(color, directorio, flg_guardar):
 	while captura.isOpened():
 		ret, frame = captura.read()
 		frame_mostrar = frame.copy() # No muestra el frame calibrado si quisiera
+		# lista = fcd.deteccion_rojo(frame_mostrar)
+		h, w = frame.shape[:2]
+		oc = (int(w/2), int(h/2))
+		k, o, _ = fcd.calibracion(frame_mostrar, ref, oc, check)
 		objeto = fcd.deteccion_objeto(frame_mostrar, color)
-		lista = fcd.deteccion_rojo(frame_mostrar)
+		_, _, _, _, _ = fcd.seguimiento_objeto(frame_mostrar, color, o, k)
 		# print (captura.get(cv2.CAP_PROP_FPS))
+		
+		# Centro objeto
+		# centro_objeto = centros(objeto, origen)[0]
+		# cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
+		
 		if ret:
 			cv2.imshow('camara', frame_mostrar)
-			if flg_guardar:
-				salida.write(frame)
-			
+
+			salida.write(frame)
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
 		else: 
 			break
 	
-	return ruta_video
-	
 	salida.release()
 	captura.release()
 	cv2.destroyAllWindows()
+	
+	return ruta_video

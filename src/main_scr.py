@@ -14,6 +14,7 @@ from PyQt5.QtCore import Qt
 import sys
 import cv2
 import time
+import os
 import numpy as np
 import f_busqueda_camaras as fbc
 import f_camara_deteccion as fcd
@@ -111,19 +112,19 @@ class MiVentana(QMainWindow):
         # Checkbox 
         # para mostrar o no imagen calibrada
         self.checkbox_mostrar_calibrado = QCheckBox("Mostrar imagen calibrada", self)
-        self.checkbox_mostrar_calibrado.setGeometry(10, h-60, w-1, 21)
+        self.checkbox_mostrar_calibrado.setGeometry(10, h-130, w-1, 21)
         
         self.checkbox_mostrar_calibrado.stateChanged.connect(self.actualizar_mostrar_calibrado)
         
         # para guardar video
         self.checkbox_guardar_video = QCheckBox("Guardar archivo video (solo Camara)", self)
-        self.checkbox_guardar_video.setGeometry(10, h-130, w-1, 21)
+        self.checkbox_guardar_video.setGeometry(10, h-100, w-1, 21)
         
         self.checkbox_guardar_video.stateChanged.connect(self.actualizar_guadar_video)
 
         # Boton para iniciar la captura
         self.pushButton = QtWidgets.QPushButton("Iniciar", self)
-        self.pushButton.setGeometry(QtCore.QRect(132, h-30, 80, 22))
+        self.pushButton.setGeometry(QtCore.QRect(132, h-70, 80, 22))
         self.pushButton.setObjectName("pushButton")
         
         self.pushButton.clicked.connect(self.iniciar_captura)
@@ -179,11 +180,16 @@ class MiVentana(QMainWindow):
             elif self.cam_seleccionada == camara:
                 if self.guardar_video:
                         directorio = self.guardar_archivo_video()
-                        ruta_video = fgv.captura_video(self.col_seleccionado, directorio, self.guardar_video)
+                        ruta_video = fgv.captura_video(self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
                         cap = cv2.VideoCapture(ruta_video)
                         fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
                 elif not self.guardar_video:
-                        fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada, self.mostrar_calibrado, True, nombre_archivo) # Una abominacion, pero anda por ahora
+                        directorio = '/tmp'
+                        ruta_video = fgv.captura_video(self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
+                        cap = cv2.VideoCapture(ruta_video)
+                        fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
+                        os.remove(ruta_video)
+                        # fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada, self.mostrar_calibrado, True, nombre_archivo) # Una abominacion, pero anda por ahora
                         # Se cuelga antes de graficar
                 """
             

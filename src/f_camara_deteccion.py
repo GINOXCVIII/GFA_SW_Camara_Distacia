@@ -134,28 +134,7 @@ def deteccion_rojo(f):
     return contours_sorted
 
 def calibracion(frame, ref, oc, check):
-    """
-    def deteccion_rojo(f):
-        
-        brightness = 8
-        contrast = 1.3
-        
-        hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
-        # Hay que ver que tan util es
-        mask = cv2.addWeighted(hsv, contrast, np.zeros(hsv.shape, hsv.dtype), 0, brightness)
-        mask = cv2.inRange(hsv, rojo[0], rojo[1])
-        
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        contours_sorted = sorted(contours, key=cv2.contourArea, reverse=True)[:4]
-        
-        for i in contours_sorted:
-            area = cv2.contourArea(i)
-            x, y, w, h = cv2.boundingRect(i)
-            cv2.rectangle(f, (x, y), (x+w, y+h), (0, 255, 0), 1)
-        
-        return contours_sorted
-    """  
+
     def unwarp(f, p):
         
         h, w = f.shape[:2]
@@ -191,22 +170,24 @@ def calibracion(frame, ref, oc, check):
         frame_tr = unwarp(frame, puntos_ordenados)        
         k = ref / frame_tr.shape[1]
         frame_tr = cv2.flip(frame_tr, 1)
-        px_x = (int(frame_tr.shape[1]/2), int(frame_tr.shape[0]/2))
+        centro_frame = (int(frame_tr.shape[1]/2), int(frame_tr.shape[0]/2))
         
-        return k, px_x, frame_tr
+        return k, centro_frame, frame_tr
     else:
         x = interseccion(puntos_ordenados)
         
         if x != None:
-            px_x = (int(x[0]), int(x[1]))
+            centro_frame = (int(x[0]), int(x[1]))
         else:
-            px_x = (int(frame.shape[1]/2), int(frame.shape[0]/2))
+            centro_frame = (int(frame.shape[1]/2), int(frame.shape[0]/2))
         
         vector_puntos_inferiores = (puntos_ordenados[2][0] - puntos_ordenados[3][0], puntos_ordenados[2][1] - puntos_ordenados[3][1]) 
         distancia = np.sqrt(vector_puntos_inferiores[0]**2 + vector_puntos_inferiores[1]**2)
         k = ref / distancia
         
-        return k, px_x, frame
+        cv2.circle(frame, centro_frame, 5, (0, 0, 255 ), -1)
+        
+        return k, centro_frame, frame
 
 # --------------------------------------------------------------------------
 
@@ -268,7 +249,7 @@ def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_
         cv2.putText(frame, "'Q' para salir", (10, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         # cv2.putText(frame, f"FPS: {fps:.2f}", (w - 80, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         
-        cv2.circle(frame, ct, 5, (0, 0, 255 ), -1)
+        # cv2.circle(frame, ct, 5, (0, 0, 255 ), -1)
         
     # ----------------------------------------------------------------------
     posicion_objeto = []
@@ -302,7 +283,7 @@ def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_
                     x.append(p[3])
                     y.append(p[4])
                 guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, nombre_archivo)
-                graficar(t[:-1], x[:-1], y[:-1]) # Revisar si es necesario, pero con la camara grafico cosas raras
+                graficar(t[:-3], x[:-3], y[:-3]) # :-3
                 cap.release()
                 cv2.destroyAllWindows()
                 break
@@ -320,18 +301,21 @@ def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_
             if mostrar_calibrado:
                 centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
-                interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+                
                 if mostrar_frame:
+                    interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                     cv2.imshow('frame', frame_calibrado)
             
             else:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame, color, origen_coordenadas, cte_proporcion_cm_px)
+                # puse frame_calibrado aca tambien. las mediciones se hacen con frame_calibrado
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
-                interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+
                 if mostrar_frame:
+                    interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                     cv2.imshow('frame', frame)
             
-            # Revisar el tiempo. El tiempo acumulado no es el mismo que la duracion de un video
+            print("Procesando ", posicion_objeto)
             posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
             
 # --------------------------------------------------------------------------
@@ -342,7 +326,7 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
     root = tk.Tk()
     root.withdraw()
     
-    directorio_destino = filedialog.askdirectory(title="Selecciona una carpeta de destino")
+    directorio_destino = filedialog.askdirectory(title="Guardar archivo de texto con coordenadas")
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
@@ -370,8 +354,6 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
 # --------------------------------------------------------------------------
 
 def graficar(t, x, y):
-    print("le large de t", len(t), "la raiz:", np.sqrt(len(t)))
-    print(f"lagunos printeos: len(x): {len(x)} len(y): {len(y)}")
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_plot = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]
     
@@ -380,13 +362,18 @@ def graficar(t, x, y):
 
     plot = [(t, x), (t, y)]
     titles = ['x(t)', 'y(t)']
-
+    rango = int(t[len(x) - 1]) - np.mod(int(t[len(x) - 1]), 10) + 10
+    if rango < 30:
+        escala = 2
+    else:
+        escala = 5
+    print(f"rango: {rango} escala: {escala}")
     for i in range(2):
         p = plot[i]       
         ax = fig.add_subplot(gs[0, i])
         ax.grid(True, linestyle = '-.')
         ax.plot(p[0], p[1])
-        plt.xticks(range(0, int(max(t))+1, 3))
+        plt.xticks(range(0, rango + 1, escala))
         ax.set_xlabel('t')
         ax.set_ylabel(titles[i])
 
