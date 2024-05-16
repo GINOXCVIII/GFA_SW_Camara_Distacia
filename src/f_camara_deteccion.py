@@ -172,7 +172,10 @@ def calibracion(frame, ref, oc, check):
         frame_tr = cv2.flip(frame_tr, 1)
         centro_frame = (int(frame_tr.shape[1]/2), int(frame_tr.shape[0]/2))
         
+        cv2.circle(frame_tr, centro_frame, 5, (0, 0, 255 ), -1)
+        
         return k, centro_frame, frame_tr
+    
     else:
         x = interseccion(puntos_ordenados)
         
@@ -330,7 +333,6 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
-    print(nombre_archivo)
 
     if directorio_destino:
         # nombre_archivo = nombre_archivo
@@ -342,7 +344,7 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
                 archivo.write(f"Tiempo total del proceso: {tiempo_a}\n")
                 archivo.write("\nCoordenadas objeto 1: \n")
                 archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)      Dist. centro (px)      Dist. centro (cm)\n")
-                for tupla in lista_1:
+                for tupla in lista_1[:-3]:
                     archivo.write(f"{tupla[0]} {tupla[1]} {tupla[2]} {tupla[3]} {tupla[4]} {tupla[5]} {tupla[6]}\n")
                                     
             print(f"Texto guardado en '{ruta_archivo}' con éxito.")
@@ -362,12 +364,18 @@ def graficar(t, x, y):
 
     plot = [(t, x), (t, y)]
     titles = ['x(t)', 'y(t)']
-    rango = int(t[len(x) - 1]) - np.mod(int(t[len(x) - 1]), 10) + 10
+    
+    if len(x) == 0:
+        rango = 1
+    else:
+        rango = int(t[len(x) - 1]) + 1
+    
     if rango < 30:
         escala = 2
     else:
         escala = 5
     print(f"rango: {rango} escala: {escala}")
+    
     for i in range(2):
         p = plot[i]       
         ax = fig.add_subplot(gs[0, i])

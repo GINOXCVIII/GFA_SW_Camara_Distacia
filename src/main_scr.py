@@ -44,10 +44,10 @@ class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
         w = 345
-        h = 380
-        cam_seleccionada = -1
-        col_seleccionado = -1
-        ref_seleccionada = -1
+        h = 340
+        self.cam_seleccionada = -1
+        self.col_seleccionado = -1
+        self.ref_seleccionada = -1
         
         self.color_1 = [11, 0, 0]
         self.color_2 = [11, 0, 0]
@@ -61,7 +61,7 @@ class MiVentana(QMainWindow):
         
         # Lista de camaras
         self.listView = QListWidget(self)
-        self.listView.setGeometry(QtCore.QRect(10, h-340, 151, 161))
+        self.listView.setGeometry(QtCore.QRect(10, h-(h-30), 151, 161))
         self.listView.setObjectName("listView")
         self.listView.addItem(camara)
 
@@ -74,21 +74,21 @@ class MiVentana(QMainWindow):
         self.listView.addItem(videopath)
             
         self.label_2 = QtWidgets.QLabel("Fuentes", self)
-        self.label_2.setGeometry(QtCore.QRect(10, h-365, 141, 20))
+        self.label_2.setGeometry(QtCore.QRect(10, h-(h-5), 141, 20))
         self.label_2.setObjectName("label_2")
         
         self.listView.itemClicked.connect(self.seleccion_fuente)
         
         # Lista de colores
         self.listView_2 = QListWidget(self)
-        self.listView_2.setGeometry(QtCore.QRect(180, h-340, 151, 161))
+        self.listView_2.setGeometry(QtCore.QRect(180, h-(h-30), 151, 161))
         self.listView_2.setObjectName("listView_2")
         for c in colores_nombres[1:]:
             item = QListWidgetItem(c)
             self.listView_2.addItem(item)
             
         self.label_3 = QtWidgets.QLabel("Colores", self)
-        self.label_3.setGeometry(QtCore.QRect(180, h-365, 141, 20))
+        self.label_3.setGeometry(QtCore.QRect(180, h-(h-5), 141, 20))
         self.label_3.setObjectName("label_3")
         
         self.listView_2.itemClicked.connect(self.seleccion_col)
@@ -96,15 +96,15 @@ class MiVentana(QMainWindow):
         # Cuadro de entrada de la referencia
         self.lineEdit = QLineEdit(self)
         self.lineEdit.setValidator(QtGui.QDoubleValidator()) # Solo se pueden ingresar numeros
-        self.lineEdit.setGeometry(QtCore.QRect(165, h-165, 78, 22))
+        self.lineEdit.setGeometry(QtCore.QRect(165, h-140, 78, 22))
         self.lineEdit.setObjectName("lineEdit")
         
         self.label = QtWidgets.QLabel("Longitud lado inferior", self)
-        self.label.setGeometry(QtCore.QRect(10, h-165, 156, 21))
+        self.label.setGeometry(QtCore.QRect(10, h-140, 156, 21))
         self.label.setObjectName("label")
         
         self.pushButton_2 = QtWidgets.QPushButton("Aplicar", self)
-        self.pushButton_2.setGeometry(QtCore.QRect(253, h-165, 80, 22))
+        self.pushButton_2.setGeometry(QtCore.QRect(253, h-140, 80, 22))
         self.pushButton_2.setObjectName("pushButton_2")
         
         self.pushButton_2.clicked.connect(self.validar_ingreso_referencia)
@@ -112,19 +112,19 @@ class MiVentana(QMainWindow):
         # Checkbox 
         # para mostrar o no imagen calibrada
         self.checkbox_mostrar_calibrado = QCheckBox("Mostrar imagen calibrada", self)
-        self.checkbox_mostrar_calibrado.setGeometry(10, h-130, w-1, 21)
+        self.checkbox_mostrar_calibrado.setGeometry(10, h-110, w-1, 21)
         
         self.checkbox_mostrar_calibrado.stateChanged.connect(self.actualizar_mostrar_calibrado)
         
         # para guardar video
         self.checkbox_guardar_video = QCheckBox("Guardar archivo video (solo Camara)", self)
-        self.checkbox_guardar_video.setGeometry(10, h-100, w-1, 21)
+        self.checkbox_guardar_video.setGeometry(10, h-80, w-1, 21)
         
         self.checkbox_guardar_video.stateChanged.connect(self.actualizar_guadar_video)
 
         # Boton para iniciar la captura
         self.pushButton = QtWidgets.QPushButton("Iniciar", self)
-        self.pushButton.setGeometry(QtCore.QRect(132, h-70, 80, 22))
+        self.pushButton.setGeometry(QtCore.QRect(132, h-40, 80, 22))
         self.pushButton.setObjectName("pushButton")
         
         self.pushButton.clicked.connect(self.iniciar_captura)
@@ -170,7 +170,7 @@ class MiVentana(QMainWindow):
         # self.col_seleccionado = self.tupla_color(self.color_1, self.color_2)
         print(self.col_seleccionado)
         
-        if self.col_seleccionado != -1 and self.ref_seleccionada != -1:
+        if self.col_seleccionado != -1 and self.ref_seleccionada > 0:
             
             if self.cam_seleccionada == videopath:
                 self.cam_seleccionada = self.cargar_archivo_video()
@@ -189,26 +189,28 @@ class MiVentana(QMainWindow):
                         cap = cv2.VideoCapture(ruta_video)
                         fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
                         os.remove(ruta_video)
-                        # fcd.hard_inicio(self.col_seleccionado, self.ref_seleccionada, self.mostrar_calibrado, True, nombre_archivo) # Una abominacion, pero anda por ahora
-                        # Se cuelga antes de graficar
-                """
-            
-            elif self.cam_seleccionada != -1:
-                cap = cv2.VideoCapture(self.cam_seleccionada)
-                fcd.iniciar_deteccion(self.col_seleccionado, cap, 0, self.ref_seleccionada)
-                """
+            else:
+                print("fuente no seleccionada")
+        
+        elif self.col_seleccionado == -1:
+                print("color no seleccionado")
+                
+        elif self.ref_seleccionada <= 0:
+                print("referencia no valida")
+        
         else:
             print("ganso, rellena todo")
             # Tengo que hacer algun feedback para indicar que faltan cosas
 
     def cargar_archivo_video(self):
+        # Hacer algo si por alguna razon no cargo nada, es decir, le doy a cancelar
         opciones = QFileDialog.Options()
         opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
-
+        
         archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
 
         return archivo
-    
+
     def guardar_archivo_video(self):
         directorio = QFileDialog.getExistingDirectory(self, 'Seleccionar Directorio')
         print(f"Directorio: {directorio}")

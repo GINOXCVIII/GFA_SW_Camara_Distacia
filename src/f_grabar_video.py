@@ -28,26 +28,29 @@ def captura_video(color, directorio, ref, check):
 	salida = cv2.VideoWriter(ruta_video, cv2.VideoWriter_fourcc(*'XVID'),captura.get(cv2.CAP_PROP_FPS),(640,480))
 
 	while captura.isOpened():
+		
 		ret, frame = captura.read()
 		frame_mostrar = frame.copy() # No muestra el frame calibrado si quisiera
 		# lista = fcd.deteccion_rojo(frame_mostrar)
 		h, w = frame.shape[:2]
 		oc = (int(w/2), int(h/2))
-		k, o, _ = fcd.calibracion(frame_mostrar, ref, oc, check)
-		objeto = fcd.deteccion_objeto(frame_mostrar, color)
-		_, _, _, _, _ = fcd.seguimiento_objeto(frame_mostrar, color, o, k)
-		# print (captura.get(cv2.CAP_PROP_FPS))
-		
-		# Centro objeto
-		# centro_objeto = centros(objeto, origen)[0]
-		# cv2.circle(frame, centro_objeto, 2, (50, 255, 0), -1)
+		k, o, frame_calibrado = fcd.calibracion(frame_mostrar, ref, oc, check)
 		
 		if ret:
-			cv2.imshow('camara', frame_mostrar)
+			if cv2.waitKey(1) & 0xFF == ord('q'):
+			 	break
+			
+			if check:
+				objeto = fcd.deteccion_objeto(frame_calibrado, color)
+				_, _, _, _, _ = fcd.seguimiento_objeto(frame_calibrado, color, o, k)
+				cv2.imshow('camara', frame_calibrado)
+			else:
+				objeto = fcd.deteccion_objeto(frame_mostrar, color)
+				_, _, _, _, _ = fcd.seguimiento_objeto(frame_mostrar, color, o, k)
+				cv2.imshow('camara', frame_mostrar)
 
 			salida.write(frame)
-			if cv2.waitKey(1) & 0xFF == ord('q'):
-				break
+			
 		else: 
 			break
 	
