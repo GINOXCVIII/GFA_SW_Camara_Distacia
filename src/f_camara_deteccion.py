@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from operator import itemgetter, attrgetter
 from tkinter import filedialog
+from scipy.signal import argrelmin
 
 import f_busqueda_camaras as bc
 import f_colores as col
@@ -322,7 +323,8 @@ def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_
             posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
             
 # --------------------------------------------------------------------------
-    
+# Se podrá pasar esta funcion y la de graficar a main_scr.py?    
+
 def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
     # Cambiar para que la direccion donde guardar sea parametro
     # Dar la opcion para guardar o no el txt
@@ -363,27 +365,41 @@ def graficar(t, x, y):
     gs = gridspec.GridSpec(1, 2)
 
     plot = [(t, x), (t, y)]
-    titles = ['x(t)', 'y(t)']
+    titulo = ['x(t)', 'y(t)']
+    leyenda = ['Valor medio', 'VM Minimos']
     
     if len(x) == 0:
         rango = 1
+        escala = 1
     else:
         rango = int(t[len(x) - 1]) + 1
-    
-    if rango < 30:
-        escala = 2
-    else:
-        escala = 5
+        if rango < 30:
+            escala = 2
+        else:
+            escala = 5    
     print(f"rango: {rango} escala: {escala}")
+
+    y_np = np.array(y)
+    min_indices_y = argrelmin(y_np)[0]
+    y_min = y_np[min_indices_y]
+    avgx = ([t[0], t[len(t)-1]], [np.average(x), np.average(x)])
+    avgy = ([t[0], t[len(t)-1]], [np.average(y_min), np.average(y_min)])
+    average = [avgx, avgy]
+    print("promedio: ", average[0], average[1])
     
     for i in range(2):
         p = plot[i]       
         ax = fig.add_subplot(gs[0, i])
         ax.grid(True, linestyle = '-.')
-        ax.plot(p[0], p[1])
+        ax.plot(p[0], p[1], 'k', label=f"Posicion {titulo[i]}")
+        
+        ax.plot(average[i][0], average[i][1], 'r', label=f"{leyenda[i]}={average[i][1][0]:.2f}")
+        
         plt.xticks(range(0, rango + 1, escala))
         ax.set_xlabel('t')
-        ax.set_ylabel(titles[i])
+        ax.set_ylabel(titulo[i])
+
+        plt.legend()
 
     fig.align_labels()
     
@@ -394,3 +410,5 @@ def graficar(t, x, y):
 def hard_inicio(c, r, mostrar_calibrado, mostrar_frame, nombre_archivo):
     cap = cv2.VideoCapture(0)
     iniciar_deteccion(c, cap, r, mostrar_calibrado, mostrar_frame, nombre_archivo)
+
+# http://programarcadegames.com/index.php?lang=es&chapter=formatting#:~:text=2f%20(observa%20la%20f%20)%20quiere,1.00%20y%201.5555%20como%201.56%20.&text=El%20formato%2010.2f%20no,despu%C3%A9s%20del%20punto%2Fcoma%20decimal.
