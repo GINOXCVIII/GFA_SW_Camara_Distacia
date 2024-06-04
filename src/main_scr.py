@@ -54,6 +54,8 @@ class MiVentana(QMainWindow):
         
         self.mostrar_calibrado = False
         self.guardar_video = False
+        self.grabando = False
+        self.estado_boton = "INICIAR"  # Variable para rastrear el estado del botón
         
         self.setWindowTitle("tonChan")  # Establecer el título de la ventana
         self.setGeometry(100, 100, w, h)  # Establecer la posición y el tamaño de la ventana
@@ -63,14 +65,14 @@ class MiVentana(QMainWindow):
         self.listView = QListWidget(self)
         self.listView.setGeometry(QtCore.QRect(10, h-(h-30), 151, 161))
         self.listView.setObjectName("listView")
-        self.listView.addItem(camara)
+        if len(indices_camaras) > 0:
+                self.listView.addItem(camara)
 
         """
         for c in camaras:
             item = QListWidgetItem(c)
             self.listView.addItem(item)
         """
-
         self.listView.addItem(videopath)
             
         self.label_2 = QtWidgets.QLabel("Fuentes", self)
@@ -124,10 +126,11 @@ class MiVentana(QMainWindow):
 
         # Boton para iniciar la captura
         self.pushButton = QtWidgets.QPushButton("Iniciar", self)
-        self.pushButton.setGeometry(QtCore.QRect(132, h-40, 80, 22))
+        self.pushButton.setGeometry(QtCore.QRect(10, h-40, w-20, 22))
         self.pushButton.setObjectName("pushButton")
         
-        self.pushButton.clicked.connect(self.iniciar_captura)
+        self.pushButton.clicked.connect(self.gestionar_boton)
+        # self.pushButton.clicked.connect(self.iniciar_captura)
 
 # --------------------------------------------------------------------------
 
@@ -163,6 +166,32 @@ class MiVentana(QMainWindow):
         self.ref_seleccionada = abs(float(rfs))
         print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
         
+    def gestionar_boton(self):
+        if self.cam_seleccionada == camara:
+                if self.estado_boton == "INICIAR":
+                    self.pushButton.setText("Grabar")
+                    self.iniciar_captura()
+                    self.estado_boton = "GRABAR"
+                
+                elif self.estado_boton == "GRABAR":
+                    self.pushButton.setText("Parar")
+                    self.grabando = True
+                    self.estado_boton = "PARAR"
+                
+                elif self.estado_boton == "PARAR":
+                    self.pushButton.setText("Iniciar")
+                    self.grabando = False
+                    # Aquí simulas la pulsación de la tecla 'q'
+                    from PyQt5.QtGui import QKeyEvent
+                    event = QKeyEvent(QKeyEvent.KeyPress, Qt.Key_Q, Qt.NoModifier)
+                    QtCore.QCoreApplication.postEvent(self, event)
+                    self.estado_boton = "INICIAR"
+                    
+        elif self.cam_seleccionada == videopath:
+                self.iniciar_captura()
+        else:
+                print("error")
+    
     def iniciar_captura(self):
         date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
         nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]
@@ -180,12 +209,12 @@ class MiVentana(QMainWindow):
             elif self.cam_seleccionada == camara:
                 if self.guardar_video:
                         directorio = self.guardar_archivo_video()
-                        ruta_video = fgv.captura_video(self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
+                        ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
                         cap = cv2.VideoCapture(ruta_video)
                         fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
                 elif not self.guardar_video:
                         directorio = '/tmp'
-                        ruta_video = fgv.captura_video(self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
+                        ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
                         cap = cv2.VideoCapture(ruta_video)
                         fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
                         os.remove(ruta_video)

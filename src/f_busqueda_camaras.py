@@ -20,7 +20,9 @@ def camaras_indices():
         if cap.isOpened():
             cam_disp.append(i)
             cap.release()
-    #print(cam_disp)
+        else:
+            break
+    
     return cam_disp
 
 # Usa QtMultimedia para encontrar los nombres de las camaras
@@ -36,4 +38,4 @@ def camaras_nombres():
         lista.append(camaras_disp[i])
 
     return lista
-    
+

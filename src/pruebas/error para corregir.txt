@@ -1,0 +1,23 @@
+camara
+Color: Fucsia
+Color: Amarillo
+qt.xkb.compose: failed to create compose table
+Valor ingresado: 36.9 Numerico: 36.9
+(array([ 20, 100, 100]), array([ 35, 255, 255]))
+[ WARN:0@9,366] global /tmp/pip-wheel-u79916uk/opencv-python_ea2489746b3a43bfb3f2b5331b7ab47a/opencv/modules/videoio/src/cap_v4l.cpp (902) open VIDEOIO(V4L2:/dev/video0): can't open camera by index
+Texto guardado en '/home/pi/Desktop/03-jun-2024_23:11:08.txt' con éxito.
+rango: 1 escala: 1
+Traceback (most recent call last):
+  File "/home/pi/Documents/imanol/GFA_SW_Camara_Distacia/src/main_scr.py", line 219, in iniciar_captura
+    fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
+  File "/home/pi/Documents/imanol/GFA_SW_Camara_Distacia/src/f_camara_deteccion.py", line 290, in iniciar_deteccion
+    graficar(t[:-3], x[:-3], y[:-3]) # :-3
+  File "/home/pi/Documents/imanol/GFA_SW_Camara_Distacia/src/f_camara_deteccion.py", line 385, in graficar
+    avgx = ([t[0], t[len(t)-1]], [np.average(x), np.average(x)])
+IndexError: list index out of range
+Aborted
+
+
+------------------
+(program exited with code: 134)
+Press return to continue

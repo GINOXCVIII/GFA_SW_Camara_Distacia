@@ -15,11 +15,11 @@ import f_camara_deteccion as fcd
 
 # ----------------------------------------------------------------------
 
-def captura_video(color, directorio, ref, check):
+def captura_video(indice, color, directorio, ref, check):
 	salida = []
 	objeto = []
 	
-	captura = cv2.VideoCapture(0)
+	captura = cv2.VideoCapture(indice)
 
 	date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
 	nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]
@@ -49,6 +49,7 @@ def captura_video(color, directorio, ref, check):
 				_, _, _, _, _ = fcd.seguimiento_objeto(frame_mostrar, color, o, k)
 				cv2.imshow('camara', frame_mostrar)
 
+			print("llegue ac'a")
 			salida.write(frame)
 			
 		else: 
