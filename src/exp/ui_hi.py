@@ -16,14 +16,28 @@ from PyQt5.QtCore import Qt
 videopath = "Archivo de video"
 camara = "Camara"
 
-class Ui_MainWindow(object):
+#class Ui_MainWindow(object):
+class Ui_MainWindow(QMainWindow):
     def setupUi(self, tonChan, camaras, colores):
         w = 677
         h = 385
         
         self.ref_seleccionada = -1
-        self.seleccion_cam = -1
+        
+        self.seleccion_cam = self.indiceCamara(camaras)
         self.selecciones_camaras = []
+        
+        self.estado_boton = False
+        
+        self.seleccion_color_obj1 = -1
+        self.seleccion_color_obj2 = -1
+        self.seleccion_color_calibracion = -1
+        self.selecciones_colores_1 = []
+        self.selecciones_colores_2 = []
+        self.selecciones_colores_c = []
+        
+        self.guardar_video = False
+        self.dos_objetos = False
 
         tonChan.setObjectName("tonChan")
         tonChan.resize(w, h)
@@ -31,6 +45,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(tonChan)
         self.centralwidget.setObjectName("centralwidget")
         
+        # Widget vista de la camara
         self.vistaCamara = QtWidgets.QLabel(self.centralwidget)
         self.vistaCamara.setGeometry(QtCore.QRect(10, 0, 461, 341))
         self.vistaCamara.setStyleSheet("background-color: rgb(0, 0, 0);")
@@ -38,7 +53,6 @@ class Ui_MainWindow(object):
         self.vistaCamara.setObjectName("vistaCamara")
         
         # Boton iniciar
-        self.estado_boton = False
         self.botonIniciar = QtWidgets.QPushButton(self.centralwidget)
         self.botonIniciar.setGeometry(QtCore.QRect(480, 0, 191, 91))
         self.botonIniciar.setObjectName("botonIniciar")
@@ -48,6 +62,8 @@ class Ui_MainWindow(object):
         self.entradaReferencia = QtWidgets.QDoubleSpinBox(self.centralwidget)
         self.entradaReferencia.setGeometry(QtCore.QRect(480, 140, 111, 31))
         self.entradaReferencia.setObjectName("entradaReferencia")
+        self.entradaReferencia.setMaximum(999999.99)  # Establecer el máximo valor permitido
+        self.entradaReferencia.setDecimals(2)
         
         self.botonAplicar = QtWidgets.QPushButton(self.centralwidget)
         self.botonAplicar.setGeometry(QtCore.QRect(600, 140, 71, 31))
@@ -65,10 +81,14 @@ class Ui_MainWindow(object):
         self.checkGuardarVideo.setGeometry(QtCore.QRect(480, 180, 201, 20))
         self.checkGuardarVideo.setObjectName("checkGuardarVideo")
         
+        self.checkGuardarVideo.stateChanged.connect(self.actualizarGuardarVideo)
+        
         # Check Detectar Dos Objetos
         self.checkDetectarDos = QtWidgets.QCheckBox(self.centralwidget)
         self.checkDetectarDos.setGeometry(QtCore.QRect(480, 210, 201, 20))
         self.checkDetectarDos.setObjectName("checkDetectarDos")
+        
+        self.checkDetectarDos.stateChanged.connect(self.actualizarDosObjetos)
         
         tonChan.setCentralWidget(self.centralwidget)
         
@@ -85,8 +105,11 @@ class Ui_MainWindow(object):
         self.menuArchivo = QtWidgets.QMenu(self.menubar)
         self.menuArchivo.setObjectName("menuArchivo")
         
+        # Cargar archivo de video
         self.actionCargarVideo = QtWidgets.QAction(tonChan)
         self.actionCargarVideo.setObjectName("actionCargarVideo")
+
+        self.actionCargarVideo.triggered.connect(self.cargarArchivoVideo)
         
         self.actionSalir = QtWidgets.QAction(tonChan)
         self.actionSalir.setObjectName("actionSalir")
@@ -104,14 +127,25 @@ class Ui_MainWindow(object):
         
         self.menuColor_Calibracion = QtWidgets.QMenu(self.menuConfiguracion)
         self.menuColor_Calibracion.setObjectName("menuColor_Calibracion")
-        
+
         for c in colores[1:]:
-            # item = QListWidgetItem(c[2])
-            (self.menuColor_Objeto_1.addAction(c[2])).setCheckable(True)
-            (self.menuColor_Objeto_2.addAction(c[2])).setCheckable(True)
-        
+            c_str = str(c[2])
+            color_1 = self.menuColor_Objeto_1.addAction(c_str)
+            color_2 = self.menuColor_Objeto_2.addAction(c_str)
+            color_1.setCheckable(True)
+            color_2.setCheckable(True)
+            color_1.triggered.connect(lambda _, color_1=color_1: self.seleccionColor(color_1, "c1"))
+            color_2.triggered.connect(lambda _, color_2=color_2: self.seleccionColor(color_2, "c2"))
+            self.selecciones_colores_1.append(color_1)
+            self.selecciones_colores_2.append(color_2)
+            
         for c in colores[:2]:
-            (self.menuColor_Calibracion.addAction(c[2])).setCheckable(True)
+            # (self.menuColor_Calibracion.addAction(c[2])).setCheckable(True)
+            c_str = str(c[2])
+            color_c = self.menuColor_Calibracion.addAction(c_str)
+            color_c.setCheckable(True)
+            color_c.triggered.connect(lambda _, color_c=color_c: self.seleccionColor(color_c, "cc"))
+            self.selecciones_colores_c.append(color_c)
         
         # Configuracion/Camaras
         self.menuCamara = QtWidgets.QMenu(self.menuConfiguracion)
@@ -162,6 +196,12 @@ class Ui_MainWindow(object):
         self.retranslateUi(tonChan)
         QtCore.QMetaObject.connectSlotsByName(tonChan)
                 
+    def indiceCamara(self, lista_camaras):
+        if len(lista_camaras) > 0:
+            return lista_camaras[0]
+        else:
+            return -1
+            
     def cambiarBotonInicar(self):
         if not self.estado_boton:
             self.botonIniciar.setText("Detener")
@@ -188,8 +228,62 @@ class Ui_MainWindow(object):
         
         self.seleccion_cam = camara_text
         seleccion.setChecked(True)
-        print(f"Camara seleccionada: {camara_text}")
+        print(f"Camara seleccionada: {self.seleccion_cam}")
+        
+    def seleccionColor(self, seleccion, color_cambiar):
+        
+        def verificarSeleccion(objetivo, lista_selecciones):
+            if objetivo != -1:
+                for c in lista_selecciones:
+                    if c.text() == objetivo:
+                        c.setChecked(False)
+                        break
+        
+        if color_cambiar == "c1":     
+            color_text = seleccion.text()
+            verificarSeleccion(self.seleccion_color_obj1, self.selecciones_colores_1)
+            self.seleccion_color_obj1 = color_text
+            seleccion.setChecked(True)
+            print(f"Color Objeto 1 seleccionado: {self.seleccion_color_obj1}")
+            
+        if color_cambiar == "c2":     
+            color_text = seleccion.text()
+            verificarSeleccion(self.seleccion_color_obj2, self.selecciones_colores_2)
+            self.seleccion_color_obj2 = color_text
+            seleccion.setChecked(True)
+            print(f"Color Objeto 2 seleccionado: {self.seleccion_color_obj2}")
+            
+        if color_cambiar == "cc":     
+            color_text = seleccion.text()
+            verificarSeleccion(self.seleccion_color_calibracion, self.selecciones_colores_c)
+            self.seleccion_color_calibracion = color_text
+            seleccion.setChecked(True)
+            print(f"Color Calibracion seleccionado: {self.seleccion_color_calibracion}")
     
+    def actualizarGuardarVideo(self):
+        self.guardar_video = self.checkGuardarVideo.isChecked()
+        print(f"Guardar video: {self.guardar_video}")
+        
+    def actualizarDosObjetos(self):
+        self.dos_objetos = self.checkDetectarDos.isChecked()
+        print(f"Detectar 2 objetos: {self.dos_objetos}")
+        
+    def cargarArchivoVideo(self):
+        # Hacer algo si por alguna razon no cargo nada, es decir, le doy a cancelar
+        opciones = QFileDialog.Options()
+        opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
+        
+        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
+
+        """
+        nombre_archivo = "juan"
+        cap = cv2.VideoCapture(archivo)lf.ref_seleccionada, False, True, nombre_archivo)
+        """
+
+    def capturaVideo():
+        if self.estado_boton:
+            return 0
+        else: return 0
     def retranslateUi(self, tonChan):
         _translate = QtCore.QCoreApplication.translate
         tonChan.setWindowTitle(_translate("tonChan", "tonChan"))
