@@ -37,4 +37,4 @@ cian = (low_cyan, high_cyan, "Cian")
 negro = (low_black, high_black, "Negro")
 
 def lista_colores():
-	return [rojo, verde, azul, amarillo, fucsia, naranja, cian]
+	return [negro, rojo, verde, azul, amarillo, fucsia, naranja, cian]

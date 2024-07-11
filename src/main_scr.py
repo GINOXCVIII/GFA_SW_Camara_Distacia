@@ -8,9 +8,10 @@ Created on Thu Sep  7 16:55:48 2023
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QCheckBox
-from PyQt5.QtGui import QColor, QPixmap
+from PyQt5.QtGui import QColor, QPixmap, QKeyEvent
 from PyQt5.QtCore import Qt
 
+import threading
 import sys
 import cv2
 import time
@@ -25,7 +26,7 @@ bocchi = ["b","o","c","c","h","i","z","a","r","o","c","k"]
 indices_camaras = fbc.camaras_indices()
 nombres_camaras = fbc.camaras_nombres()
 camaras = []
-colores = fcd.get_lista_colores()
+# colores = fcd.get_lista_colores()
 
 colores_nombres = []
 for c in colores:
@@ -40,6 +41,7 @@ videopath = "Archivo de video"
 camara = "Camara"
 
 # ------------------------------------------------------------------------------------------------
+
 class MiVentana(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -54,7 +56,8 @@ class MiVentana(QMainWindow):
         
         self.mostrar_calibrado = False
         self.guardar_video = False
-        self.grabando = False
+        self.grabando = True
+        
         self.estado_boton = "INICIAR"  # Variable para rastrear el estado del botón
         
         self.setWindowTitle("tonChan")  # Establecer el título de la ventana
@@ -125,12 +128,12 @@ class MiVentana(QMainWindow):
         self.checkbox_guardar_video.stateChanged.connect(self.actualizar_guadar_video)
 
         # Boton para iniciar la captura
-        self.pushButton = QtWidgets.QPushButton("Iniciar", self)
+        self.pushButton = QtWidgets.QPushButton("INICIAR", self)
         self.pushButton.setGeometry(QtCore.QRect(10, h-40, w-20, 22))
         self.pushButton.setObjectName("pushButton")
         
-        self.pushButton.clicked.connect(self.gestionar_boton)
-        # self.pushButton.clicked.connect(self.iniciar_captura)
+        # self.pushButton.clicked.connect(self.gestionar_boton)
+        self.pushButton.clicked.connect(self.iniciar_captura)
 
 # --------------------------------------------------------------------------
 
@@ -142,7 +145,6 @@ class MiVentana(QMainWindow):
             self.seleccion_cam(item)
         
     def seleccion_cam(self, item):
-        # Hacer un chequeo por si no hay camara
         print("camara")
         self.cam_seleccionada = camara
         
@@ -160,32 +162,39 @@ class MiVentana(QMainWindow):
         print(f"Color: {seleccion}") 
         
     def validar_ingreso_referencia(self):
-        rfs = self.lineEdit.text()
+        rfs = self.lineEdit.text() # Siempre es str
         # Hacer una comprobacion por si se ingresa una coma en lugar de un punto
-        # Hacer comprobacion cuando no se ingresa nada. Si se apreta Aplicar, se cierra
-        self.ref_seleccionada = abs(float(rfs))
-        print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
+        rfs_2 = rfs.replace(',', '.')
+        try:
+            self.ref_seleccionada = abs(float(rfs_2))
+            print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
+        except ValueError:
+            print("Error: La cadena contiene caracteres no válidos para convertir a float")
         
     def gestionar_boton(self):
+        print(f"estado: {self.estado_boton}")
         if self.cam_seleccionada == camara:
                 if self.estado_boton == "INICIAR":
-                    self.pushButton.setText("Grabar")
-                    self.iniciar_captura()
-                    self.estado_boton = "GRABAR"
+                        self.estado_boton = "GRABAR"
+                        self.pushButton.setText(self.estado_boton)
+                        print(f"estado: {self.estado_boton}")
+                        self.iniciar_captura()
                 
                 elif self.estado_boton == "GRABAR":
-                    self.pushButton.setText("Parar")
-                    self.grabando = True
-                    self.estado_boton = "PARAR"
-                
+                        self.estado_boton = "PARAR"
+                        self.pushButton.setText(self.estado_boton)
+                        # Aquí simulas la pulsación de la tecla 'w' 
+                        event = QKeyEvent(QKeyEvent.KeyPress, Qt.Key_W, Qt.NoModifier)
+                        QtCore.QCoreApplication.postEvent(self, event)
+                        # print(f"estado: {self.estado_boton} pressed w")
+                        
                 elif self.estado_boton == "PARAR":
-                    self.pushButton.setText("Iniciar")
-                    self.grabando = False
-                    # Aquí simulas la pulsación de la tecla 'q'
-                    from PyQt5.QtGui import QKeyEvent
-                    event = QKeyEvent(QKeyEvent.KeyPress, Qt.Key_Q, Qt.NoModifier)
-                    QtCore.QCoreApplication.postEvent(self, event)
-                    self.estado_boton = "INICIAR"
+                        self.estado_boton = "INICIAR"
+                        self.pushButton.setText(self.estado_boton)
+                        # Aquí simulas la pulsación de la tecla 'q'
+                        event = QKeyEvent(QKeyEvent.KeyPress, Qt.Key_Q, Qt.NoModifier)
+                        QtCore.QCoreApplication.postEvent(self, event)
+                        # print(f"estado: {self.estado_boton} pressed q")
                     
         elif self.cam_seleccionada == videopath:
                 self.iniciar_captura()
@@ -208,16 +217,16 @@ class MiVentana(QMainWindow):
             
             elif self.cam_seleccionada == camara:
                 if self.guardar_video:
-                        directorio = self.guardar_archivo_video()
-                        ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
-                        cap = cv2.VideoCapture(ruta_video)
-                        fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
+                    directorio = self.guardar_archivo_video()
+                    ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
+                    cap = cv2.VideoCapture(ruta_video)
+                    fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
                 elif not self.guardar_video:
-                        directorio = '/tmp'
-                        ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
-                        cap = cv2.VideoCapture(ruta_video)
-                        fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
-                        os.remove(ruta_video)
+                    directorio = '/tmp'
+                    ruta_video = fgv.captura_video(indices_camaras[0], self.col_seleccionado, directorio, self.ref_seleccionada, self.mostrar_calibrado)
+                    cap = cv2.VideoCapture(ruta_video)
+                    fcd.iniciar_deteccion(self.col_seleccionado, cap, self.ref_seleccionada, self.mostrar_calibrado, False, nombre_archivo)
+                    os.remove(ruta_video)
             else:
                 print("fuente no seleccionada")
         
@@ -228,7 +237,7 @@ class MiVentana(QMainWindow):
                 print("referencia no valida")
         
         else:
-            print("ganso, rellena todo")
+            print("ka-boom")
             # Tengo que hacer algun feedback para indicar que faltan cosas
 
     def cargar_archivo_video(self):
