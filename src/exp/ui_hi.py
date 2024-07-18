@@ -12,6 +12,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QCheckBox, QAction, QActionGroup, QMainWindow, QMenu
 from PyQt5.QtGui import QColor, QPixmap, QKeyEvent
 from PyQt5.QtCore import Qt
+import numpy as np
+import cv2
+
+import f_camara_deteccion as fcd
 
 videopath = "Archivo de video"
 camara = "Camara"
@@ -24,8 +28,10 @@ class Ui_MainWindow(QMainWindow):
         
         self.ref_seleccionada = -1
         
-        self.seleccion_cam = self.indiceCamara(camaras)
+        self.seleccion_camara = self.indiceCamara(camaras)
         self.selecciones_camaras = []
+        
+        self.seleccion_video = "/tmp"
         
         self.estado_boton = False
         
@@ -109,10 +115,13 @@ class Ui_MainWindow(QMainWindow):
         self.actionCargarVideo = QtWidgets.QAction(tonChan)
         self.actionCargarVideo.setObjectName("actionCargarVideo")
 
-        self.actionCargarVideo.triggered.connect(self.cargarArchivoVideo)
+        self.actionCargarVideo.triggered.connect(self.procesarArchivoVideo)
         
+        # Salir
         self.actionSalir = QtWidgets.QAction(tonChan)
         self.actionSalir.setObjectName("actionSalir")
+        
+        self.actionSalir.triggered.connect(self.accionSalir)
         
         # Menu/Configuracion
         self.menuConfiguracion = QtWidgets.QMenu(self.menubar)
@@ -132,19 +141,22 @@ class Ui_MainWindow(QMainWindow):
             c_str = str(c[2])
             color_1 = self.menuColor_Objeto_1.addAction(c_str)
             color_2 = self.menuColor_Objeto_2.addAction(c_str)
+            color_1.triggered.connect(lambda _, color_1=color_1: self.seleccionColor(colores, color_1, "c1"))
+            color_2.triggered.connect(lambda _, color_2=color_2: self.seleccionColor(colores, color_2, "c2"))
             color_1.setCheckable(True)
             color_2.setCheckable(True)
-            color_1.triggered.connect(lambda _, color_1=color_1: self.seleccionColor(color_1, "c1"))
-            color_2.triggered.connect(lambda _, color_2=color_2: self.seleccionColor(color_2, "c2"))
             self.selecciones_colores_1.append(color_1)
             self.selecciones_colores_2.append(color_2)
+            
+        print(f"selecciones_colores_1: {self.selecciones_colores_1}")
+        print(f"selecciones_colores_2: {self.selecciones_colores_2}")
             
         for c in colores[:2]:
             # (self.menuColor_Calibracion.addAction(c[2])).setCheckable(True)
             c_str = str(c[2])
             color_c = self.menuColor_Calibracion.addAction(c_str)
+            color_c.triggered.connect(lambda _, color_c=color_c: self.seleccionColor(colores, color_c, "cc"))
             color_c.setCheckable(True)
-            color_c.triggered.connect(lambda _, color_c=color_c: self.seleccionColor(color_c, "cc"))
             self.selecciones_colores_c.append(color_c)
         
         # Configuracion/Camaras
@@ -159,6 +171,7 @@ class Ui_MainWindow(QMainWindow):
                 camara.triggered.connect(lambda _, camara=camara: self.seleccionCamara(camara))
                 self.selecciones_camaras.append(camara)
             # (self.grupoCamaras).connect(lambda _, camara=camara: self.seleccionCamara(camara))
+            self.selecciones_camaras[0].setChecked(True)
         else:
                 self.menuCamara.addAction("No hay camaras disponibles")
         
@@ -195,7 +208,11 @@ class Ui_MainWindow(QMainWindow):
 
         self.retranslateUi(tonChan)
         QtCore.QMetaObject.connectSlotsByName(tonChan)
-                
+    
+    def accionSalir(self):
+        self.close()
+        QtWidgets.QApplication.quit()
+
     def indiceCamara(self, lista_camaras):
         if len(lista_camaras) > 0:
             return lista_camaras[0]
@@ -220,45 +237,56 @@ class Ui_MainWindow(QMainWindow):
 
     def seleccionCamara(self, seleccion):
         camara_text = seleccion.text()
-        if self.seleccion_cam != -1:
+        if self.seleccion_camara != -1:
             for c in self.selecciones_camaras:
-                if c.text() == self.seleccion_cam:
+                if c.text() == self.seleccion_camara:
                     c.setChecked(False)
                     break
         
-        self.seleccion_cam = camara_text
+        self.seleccion_camara = camara_text
         seleccion.setChecked(True)
-        print(f"Camara seleccionada: {self.seleccion_cam}")
-        
-    def seleccionColor(self, seleccion, color_cambiar):
+        print(f"Camara seleccionada: {self.seleccion_camara}")
+    
+    def seleccionColor(self, colores, seleccion, color_cambiar):
         
         def verificarSeleccion(objetivo, lista_selecciones):
             if objetivo != -1:
-                for c in lista_selecciones:
-                    if c.text() == objetivo:
-                        c.setChecked(False)
-                        break
+                for item_color in lista_selecciones:
+                    if item_color.isChecked():
+                        item_color.setChecked(False)
+                        
+        def buscar_color(nombre_color, lista_colores):
+            tupla_color = 0
+            # color = (color_bajo, color_alto, nombre_color_str)
+            for color in lista_colores:
+                if nombre_color in color:
+                    tupla_color = (color[0], color[1])
+                    break
+            return tupla_color
         
         if color_cambiar == "c1":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj1, self.selecciones_colores_1)
-            self.seleccion_color_obj1 = color_text
+            # self.seleccion_color_obj1 = color_text
+            self.seleccion_color_obj1 = buscar_color(color_text, colores)
             seleccion.setChecked(True)
-            print(f"Color Objeto 1 seleccionado: {self.seleccion_color_obj1}")
+            print(f"Color Objeto 1 seleccionado: {color_text}")
             
         if color_cambiar == "c2":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj2, self.selecciones_colores_2)
-            self.seleccion_color_obj2 = color_text
+            # self.seleccion_color_obj2 = color_text
+            self.seleccion_color_obj2 = buscar_color(color_text, colores)
             seleccion.setChecked(True)
-            print(f"Color Objeto 2 seleccionado: {self.seleccion_color_obj2}")
+            print(f"Color Objeto 2 seleccionado: {color_text}")
             
         if color_cambiar == "cc":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_calibracion, self.selecciones_colores_c)
-            self.seleccion_color_calibracion = color_text
+            # self.seleccion_color_calibracion = color_text
+            self.seleccion_color_calibracion = buscar_color(color_text, colores)
             seleccion.setChecked(True)
-            print(f"Color Calibracion seleccionado: {self.seleccion_color_calibracion}")
+            print(f"Color Calibracion seleccionado: {color_text}")
     
     def actualizarGuardarVideo(self):
         self.guardar_video = self.checkGuardarVideo.isChecked()
@@ -274,16 +302,28 @@ class Ui_MainWindow(QMainWindow):
         opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
         
         archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
-
         """
         nombre_archivo = "juan"
         cap = cv2.VideoCapture(archivo)lf.ref_seleccionada, False, True, nombre_archivo)
         """
+        return archivo
+    
+    def procesarArchivoVideo(self):
+        if self.seleccion_color_obj1 == -1:
+            print("Color no seleccionado")
+        else:
+            if self.ref_seleccionada == -1:
+                print("Referencia no cargada")
+            else:
+                self.seleccion_video = self.cargarArchivoVideo()
+                cap = cv2.VideoCapture(self.seleccion_video)
+                fcd.iniciar_deteccion(self.seleccion_color_obj1, cap, self.ref_seleccionada, False, True, "ui")
 
-    def capturaVideo():
+    def capturaVideo(self):
         if self.estado_boton:
             return 0
         else: return 0
+
     def retranslateUi(self, tonChan):
         _translate = QtCore.QCoreApplication.translate
         tonChan.setWindowTitle(_translate("tonChan", "tonChan"))

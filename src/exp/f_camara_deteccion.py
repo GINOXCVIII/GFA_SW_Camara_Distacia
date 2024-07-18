@@ -19,8 +19,8 @@ from scipy.signal import argrelmin
 import f_busqueda_camaras as bc
 import f_colores as col
 
-colores = col.lista_colores() # [rojo, verde, azul, amarillo, fucsia, naranja, cian]
-rojo = colores[0]
+colores = col.lista_colores() # [negro, rojo, verde, azul, amarillo, fucsia, naranja, cian]
+rojo = colores[1]
 
 cap = 0
 
@@ -413,4 +413,3 @@ def hard_inicio(c, r, mostrar_calibrado, mostrar_frame, nombre_archivo):
     cap = cv2.VideoCapture(0)
     iniciar_deteccion(c, cap, r, mostrar_calibrado, mostrar_frame, nombre_archivo)
 
-# http://programarcadegames.com/index.php?lang=es&chapter=formatting#:~:text=2f%20(observa%20la%20f%20)%20quiere,1.00%20y%201.5555%20como%201.56%20.&text=El%20formato%2010.2f%20no,despu%C3%A9s%20del%20punto%2Fcoma%20decimal.
