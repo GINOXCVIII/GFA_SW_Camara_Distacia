@@ -11,11 +11,13 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QCheckBox, QAction, QActionGroup, QMainWindow, QMenu
 from PyQt5.QtGui import QColor, QPixmap, QKeyEvent
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 import numpy as np
 import cv2
+import threading
 
 import f_camara_deteccion as fcd
+import f_captura_video as fcv
 
 videopath = "Archivo de video"
 camara = "Camara"
@@ -58,11 +60,18 @@ class Ui_MainWindow(QMainWindow):
         self.vistaCamara.setText("")
         self.vistaCamara.setObjectName("vistaCamara")
         
+        self.timer = QTimer(tonChan)
+        self.timer.timeout.connect(self.actualizarVistaCamara)
+        
+        self.iniciarCamara(self.seleccion_camara)
+
         # Boton iniciar
         self.botonIniciar = QtWidgets.QPushButton(self.centralwidget)
         self.botonIniciar.setGeometry(QtCore.QRect(480, 0, 191, 91))
         self.botonIniciar.setObjectName("botonIniciar")
+        
         self.botonIniciar.clicked.connect(self.cambiarBotonInicar)
+        # self.botonIniciar.clicked.connect(self.printearMierda) Le puedo poner 2 funciones
         
         # Entrada de referencia y boton Aplicar
         self.entradaReferencia = QtWidgets.QDoubleSpinBox(self.centralwidget)
@@ -152,7 +161,6 @@ class Ui_MainWindow(QMainWindow):
         print(f"selecciones_colores_2: {self.selecciones_colores_2}")
             
         for c in colores[:2]:
-            # (self.menuColor_Calibracion.addAction(c[2])).setCheckable(True)
             c_str = str(c[2])
             color_c = self.menuColor_Calibracion.addAction(c_str)
             color_c.triggered.connect(lambda _, color_c=color_c: self.seleccionColor(colores, color_c, "cc"))
@@ -208,7 +216,9 @@ class Ui_MainWindow(QMainWindow):
 
         self.retranslateUi(tonChan)
         QtCore.QMetaObject.connectSlotsByName(tonChan)
-    
+
+# ------------------------------------------------------------------------------------------------
+            
     def accionSalir(self):
         self.close()
         QtWidgets.QApplication.quit()
@@ -237,15 +247,16 @@ class Ui_MainWindow(QMainWindow):
 
     def seleccionCamara(self, seleccion):
         camara_text = seleccion.text()
-        if self.seleccion_camara != -1:
+        if str(self.seleccion_camara) != camara_text:
             for c in self.selecciones_camaras:
-                if c.text() == self.seleccion_camara:
+                if c.isChecked():
                     c.setChecked(False)
-                    break
         
-        self.seleccion_camara = camara_text
+            self.seleccion_camara = int(camara_text)
+            print(f"Camara seleccionada: {self.seleccion_camara}")
+            self.cambiarCamara(self.seleccion_camara)
+        
         seleccion.setChecked(True)
-        print(f"Camara seleccionada: {self.seleccion_camara}")
     
     def seleccionColor(self, colores, seleccion, color_cambiar):
         
@@ -267,7 +278,6 @@ class Ui_MainWindow(QMainWindow):
         if color_cambiar == "c1":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj1, self.selecciones_colores_1)
-            # self.seleccion_color_obj1 = color_text
             self.seleccion_color_obj1 = buscar_color(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Objeto 1 seleccionado: {color_text}")
@@ -275,7 +285,6 @@ class Ui_MainWindow(QMainWindow):
         if color_cambiar == "c2":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj2, self.selecciones_colores_2)
-            # self.seleccion_color_obj2 = color_text
             self.seleccion_color_obj2 = buscar_color(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Objeto 2 seleccionado: {color_text}")
@@ -283,7 +292,6 @@ class Ui_MainWindow(QMainWindow):
         if color_cambiar == "cc":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_calibracion, self.selecciones_colores_c)
-            # self.seleccion_color_calibracion = color_text
             self.seleccion_color_calibracion = buscar_color(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Calibracion seleccionado: {color_text}")
@@ -302,10 +310,7 @@ class Ui_MainWindow(QMainWindow):
         opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
         
         archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
-        """
-        nombre_archivo = "juan"
-        cap = cv2.VideoCapture(archivo)lf.ref_seleccionada, False, True, nombre_archivo)
-        """
+
         return archivo
     
     def procesarArchivoVideo(self):
@@ -319,11 +324,32 @@ class Ui_MainWindow(QMainWindow):
                 cap = cv2.VideoCapture(self.seleccion_video)
                 fcd.iniciar_deteccion(self.seleccion_color_obj1, cap, self.ref_seleccionada, False, True, "ui")
 
-    def capturaVideo(self):
-        if self.estado_boton:
-            return 0
-        else: return 0
+    def actualizarVistaCamara(self):
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            tamaño_widget = self.vistaCamara.size()
+            ancho_widget = tamaño_widget.width()
+            alto_widget = tamaño_widget.height()
 
+            frame_redimensionado = cv2.resize(frame, (ancho_widget, alto_widget))
+
+            imagen = QtGui.QImage(frame_redimensionado, frame_redimensionado.shape[1], frame_redimensionado.shape[0], frame_redimensionado.strides[0], QtGui.QImage.Format_RGB888)
+            pixmap = QtGui.QPixmap.fromImage(imagen)
+            self.vistaCamara.setPixmap(pixmap)
+
+    def iniciarCamara(self, indice_camara):
+        self.cap = cv2.VideoCapture(indice_camara)
+        self.timer.start(29.99)
+
+    def cambiarCamara(self, seleccion_camara):
+        print(seleccion_camara, self.seleccion_camara, self.cap.isOpened())
+        if self.cap.isOpened():
+            self.cap.release()
+            self.iniciarCamara(seleccion_camara) 
+        
+# ------------------------------------------------------------------------------------------------
+        
     def retranslateUi(self, tonChan):
         _translate = QtCore.QCoreApplication.translate
         tonChan.setWindowTitle(_translate("tonChan", "tonChan"))

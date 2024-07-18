@@ -26,7 +26,7 @@ bocchi = ["b","o","c","c","h","i","z","a","r","o","c","k"]
 indices_camaras = fbc.camaras_indices()
 nombres_camaras = fbc.camaras_nombres()
 camaras = []
-# colores = fcd.get_lista_colores()
+colores = fcd.get_lista_colores()
 
 colores_nombres = []
 for c in colores:

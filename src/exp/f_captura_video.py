@@ -64,3 +64,38 @@ def captura_video(indice, color, directorio, ref, mostrar_calibrado):
 	cv2.destroyAllWindows()
 	
 	return ruta_video
+
+def previsualizarVideo(cap, dim, ref, color):
+	objeto = []
+	ret, frame = cap.read()
+
+	ancho_widget = dim.width()
+	alto_widget = dim.height()
+
+	h, w = frame.shape[:2]
+	oc = (int(w/2), int(h/2))
+	k, o, _ = fcd.calibracion(frame, ref, oc, False)
+	
+	if ret:
+		frame_redimensionado = cv2.resize(frame, (ancho_widget, alto_widget))
+		objeto = fcd.deteccion_objeto(frame, color)
+		_, _, _, _, _ = fcd.seguimiento_objeto(frame, color, o, k)
+		# cv2.putText(frame, f"grabando {grabando}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+		cv2.imshow('camara', frame)
+		imagen = QtGui.QImage(frame_redimensionado, frame_redimensionado.shape[1], frame_redimensionado.shape[0], frame_redimensionado.strides[0], QtGui.QImage.Format_RGB888)
+		pixmap = QtGui.QPixmap.fromImage(imagen)
+		self.vistaCamara.setPixmap(pixmap)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
