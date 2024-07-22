@@ -238,13 +238,14 @@ class Ui_MainWindow(QMainWindow):
         if not self.estado_boton:
             self.botonIniciar.setText("Detener")
             self.estado_boton = True
-            self.comenzarGrabacion()
+            self.comenzarGrabacion(self.guardar_video)
         else:
             self.botonIniciar.setText("Iniciar")
             self.estado_boton = False
             if self.iniciar_captura is not None:
                 self.iniciar_captura.release()
                 self.iniciar_captura = None
+                self.procesarGrabacion()
 
     def validarIngresoReferencia(self):
         rfs = (self.entradaReferencia.text()).replace(',', '.') # Siempre es str
@@ -335,30 +336,12 @@ class Ui_MainWindow(QMainWindow):
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
                 cap = cv2.VideoCapture(self.seleccion_video)
-                fcd.iniciar_deteccion(self.seleccion_color_obj1, cap, self.ref_seleccionada, False, True, "ui")
+                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, True, "ui")
 
-    """
-    def actualizarVistaCamara(self):
-        # Modificar esta funcion para que muestre las marcas de deteccion
-        ret, frame = self.cap.read()
-        if ret:
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            tamaño_widget = self.vistaCamara.size()
-            ancho_widget = tamaño_widget.width()
-            alto_widget = tamaño_widget.height()
+    def procesarGrabacion(self):
+        cap = cv2.VideoCapture(self.seleccion_video)
+        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, False, "ui")
 
-            frame_redimensionado = cv2.resize(frame, (ancho_widget, alto_widget))
-            frame_mostrar = fcv.previsualizarVideo(frame, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1)
-            # frame_mostrar = cv2.resize(frame, (ancho_widget, alto_widget))
-
-            imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)
-            pixmap = QtGui.QPixmap.fromImage(imagen)
-            self.vistaCamara.setPixmap(pixmap)
-            
-            if self.iniciar_captura is not None:
-                frame_writer = cv2.cvtColor(frame_redimensionado, cv2.COLOR_RGB2BGR)
-                self.iniciar_captura.write(frame_writer)
-    """
     def actualizarVistaCamara(self):
         # Modificar esta funcion para que muestre las marcas de deteccion
         tamaño_widget = self.vistaCamara.size()
@@ -380,18 +363,29 @@ class Ui_MainWindow(QMainWindow):
         self.cap = cv2.VideoCapture(indice_camara)
         # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.fps = 10 # Funciono ???
-        self.timer.start(int(1000 / self.fps)) # funcionaria 1000 * (1 / fps), fps = 30?
+        self.timer.start(int(1000 / self.fps))
 
     def cambiarCamara(self, seleccion_camara):
         print(seleccion_camara, self.seleccion_camara, self.cap.isOpened())
         if self.cap.isOpened():
             self.cap.release()
             self.iniciarCamara(seleccion_camara)
+       
+    def elegirDirectorioGuardarGrabacion(self):
+        directorio = QFileDialog.getExistingDirectory(self, 'Seleccionar Directorio')
+        print(f"Directorio: {directorio}")
+        # self.entrada_directorio.setText(directorio)
+        
+        return directorio
             
-    def comenzarGrabacion(self):
+    def comenzarGrabacion(self, guardar_video):
         fecha = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
         nombre_archivo = fecha[5:7]+"-"+fecha[8:11]+"-"+fecha[12:16]+"_"+fecha[17:25]+".avi"
-        self.seleccion_video = "/tmp/"+nombre_archivo
+        if guardar_video:
+             directorio = self.elegirDirectorioGuardarGrabacion()
+             self.seleccion_video = directorio+"/"+nombre_archivo
+        else:
+             self.seleccion_video = "/tmp/"+nombre_archivo
         
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         fps = self.fps
