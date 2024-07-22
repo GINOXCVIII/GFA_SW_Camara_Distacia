@@ -65,26 +65,21 @@ def captura_video(indice, color, directorio, ref, mostrar_calibrado):
 	
 	return ruta_video
 
-def previsualizarVideo(cap, dim, ref, color):
-	objeto = []
+def previsualizarVideo(cap, dimensiones, referencia, color, color_calibracion):
 	ret, frame = cap.read()
-
-	ancho_widget = dim.width()
-	alto_widget = dim.height()
-
-	h, w = frame.shape[:2]
-	oc = (int(w/2), int(h/2))
-	k, o, _ = fcd.calibracion(frame, ref, oc, False)
-	
 	if ret:
-		frame_redimensionado = cv2.resize(frame, (ancho_widget, alto_widget))
-		objeto = fcd.deteccion_objeto(frame, color)
-		_, _, _, _, _ = fcd.seguimiento_objeto(frame, color, o, k)
-		# cv2.putText(frame, f"grabando {grabando}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-		cv2.imshow('camara', frame)
-		imagen = QtGui.QImage(frame_redimensionado, frame_redimensionado.shape[1], frame_redimensionado.shape[0], frame_redimensionado.strides[0], QtGui.QImage.Format_RGB888)
-		pixmap = QtGui.QPixmap.fromImage(imagen)
-		self.vistaCamara.setPixmap(pixmap)
+		objeto = []
+		frame_redimensionado = cv2.resize(frame, (dimensiones.width(), dimensiones.height()))
+		frame_original = frame_redimensionado.copy()
+		frame_original = cv2.cvtColor(frame_original, cv2.COLOR_BGR2RGB)
+		oc = (int(dimensiones.width() / 2), int(dimensiones.height() / 2))
+		k, o, _ = fcd.calibracion(frame_redimensionado, referencia, oc, color_calibracion, False)
+		
+		# frame_redimensionado = cv2.resize(frame, (dimensiones.width(), dimensiones.height()))
+		objeto = fcd.deteccion_objeto(frame_redimensionado, color)
+		_, _, _, _, _ = fcd.seguimiento_objeto(frame_redimensionado, color, o, k)
+		frame_redimensionado = cv2.cvtColor(frame_redimensionado, cv2.COLOR_RGB2BGR)
+		return frame_original, frame_redimensionado
 	
 	
 	

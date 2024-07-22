@@ -113,7 +113,7 @@ def centros(cont, oc):
         return M
 
 # --------------------------------------------------------------------------    
-def deteccion_rojo(f):
+def deteccion_color_calibracion(f, color):
         
     brightness = 8
     contrast = 1.3
@@ -121,7 +121,7 @@ def deteccion_rojo(f):
     hsv = cv2.cvtColor(f, cv2.COLOR_BGR2HSV)
     # Hay que ver que tan util es
     mask = cv2.addWeighted(hsv, contrast, np.zeros(hsv.shape, hsv.dtype), 0, brightness)
-    mask = cv2.inRange(hsv, rojo[0], rojo[1])
+    mask = cv2.inRange(hsv, color[0], color[1])
         
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
@@ -134,7 +134,7 @@ def deteccion_rojo(f):
 
     return contours_sorted
 
-def calibracion(frame, ref, oc, check):
+def calibracion(frame, ref, oc, colcal, check):
 
     def unwarp(f, p):
         
@@ -160,7 +160,7 @@ def calibracion(frame, ref, oc, check):
     
     # ----------------------------------------------------------------------
     
-    centros_puntos_calibracion = centros(deteccion_rojo(frame), oc)
+    centros_puntos_calibracion = centros(deteccion_color_calibracion(frame, colcal), oc)
     
     for c in centros_puntos_calibracion:
         cv2.circle(frame, c, 1, (0, 255, 255), -1)
@@ -246,7 +246,7 @@ def seguimiento_objeto(frame, c, origen, proporcion):
 
 # --------------------------------------------------------------------------
 
-def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo):
+def iniciar_deteccion(color, colcal, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo):
     
     def interfaz_texto(frame, pos, pos_cm, d, d_cm, ct):
         h, w = frame.shape[:2]
@@ -302,7 +302,7 @@ def iniciar_deteccion(color, cap, ref, mostrar_calibrado, mostrar_frame, nombre_
                 print("frame None", centro_plano)
             
             # Calibracion: obtengo frame calibrado
-            cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, mostrar_calibrado) # Fijado para hacer calibracion con rojo
+            cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, colcal, mostrar_calibrado) # Fijado para hacer calibracion con rojo
 
             # Obtengo tiempos correctos, solo para archivos de video
             if mostrar_calibrado:

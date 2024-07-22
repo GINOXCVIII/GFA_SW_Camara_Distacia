@@ -25,6 +25,7 @@ camara = "Camara"
 #class Ui_MainWindow(object):
 class Ui_MainWindow(QMainWindow):
     def setupUi(self, tonChan, camaras, colores):
+        # colores = [negro, rojo, verde, azul, amarillo, fucsia, naranja, cian]
         w = 677
         h = 385
         
@@ -146,7 +147,6 @@ class Ui_MainWindow(QMainWindow):
         
         self.menuColor_Calibracion = QtWidgets.QMenu(self.menuConfiguracion)
         self.menuColor_Calibracion.setObjectName("menuColor_Calibracion")
-
         for c in colores[1:]:
             c_str = str(c[2])
             color_1 = self.menuColor_Objeto_1.addAction(c_str)
@@ -158,15 +158,19 @@ class Ui_MainWindow(QMainWindow):
             self.selecciones_colores_1.append(color_1)
             self.selecciones_colores_2.append(color_2)
             
-        print(f"selecciones_colores_1: {self.selecciones_colores_1}")
-        print(f"selecciones_colores_2: {self.selecciones_colores_2}")
-            
         for c in colores[:2]:
             c_str = str(c[2])
             color_c = self.menuColor_Calibracion.addAction(c_str)
             color_c.triggered.connect(lambda _, color_c=color_c: self.seleccionColor(colores, color_c, "cc"))
             color_c.setCheckable(True)
             self.selecciones_colores_c.append(color_c)
+        
+        self.seleccionColor(colores, self.selecciones_colores_1[3], "c1")
+        self.selecciones_colores_1[3].setChecked(True)
+        self.seleccionColor(colores, self.selecciones_colores_2[4], "c2")
+        self.selecciones_colores_2[4].setChecked(True)
+        self.seleccionColor(colores, self.selecciones_colores_c[1], "cc")
+        self.selecciones_colores_c[1].setChecked(True)
         
         # Configuracion/Camaras
         self.menuCamara = QtWidgets.QMenu(self.menuConfiguracion)
@@ -263,6 +267,9 @@ class Ui_MainWindow(QMainWindow):
         
         seleccion.setChecked(True)
     
+    def tuplaColor(self, c1, c2):
+        return (np.array(c1), np.array(c2))
+    
     def seleccionColor(self, colores, seleccion, color_cambiar):
         
         def verificarSeleccion(objetivo, lista_selecciones):
@@ -271,33 +278,34 @@ class Ui_MainWindow(QMainWindow):
                     if item_color.isChecked():
                         item_color.setChecked(False)
                         
-        def buscar_color(nombre_color, lista_colores):
+        def buscarColor(nombre_color, lista_colores):
             tupla_color = 0
             # color = (color_bajo, color_alto, nombre_color_str)
             for color in lista_colores:
                 if nombre_color in color:
-                    tupla_color = (color[0], color[1])
+                    # tupla_color = (color[0], color[1])
+                    tupla_color = self.tuplaColor(color[0], color[1])
                     break
             return tupla_color
         
         if color_cambiar == "c1":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj1, self.selecciones_colores_1)
-            self.seleccion_color_obj1 = buscar_color(color_text, colores)
+            self.seleccion_color_obj1 = buscarColor(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Objeto 1 seleccionado: {color_text}")
             
         if color_cambiar == "c2":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_obj2, self.selecciones_colores_2)
-            self.seleccion_color_obj2 = buscar_color(color_text, colores)
+            self.seleccion_color_obj2 = buscarColor(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Objeto 2 seleccionado: {color_text}")
             
         if color_cambiar == "cc":     
             color_text = seleccion.text()
             verificarSeleccion(self.seleccion_color_calibracion, self.selecciones_colores_c)
-            self.seleccion_color_calibracion = buscar_color(color_text, colores)
+            self.seleccion_color_calibracion = buscarColor(color_text, colores)
             seleccion.setChecked(True)
             print(f"Color Calibracion seleccionado: {color_text}")
     
@@ -329,24 +337,44 @@ class Ui_MainWindow(QMainWindow):
                 cap = cv2.VideoCapture(self.seleccion_video)
                 fcd.iniciar_deteccion(self.seleccion_color_obj1, cap, self.ref_seleccionada, False, True, "ui")
 
+    """
     def actualizarVistaCamara(self):
         # Modificar esta funcion para que muestre las marcas de deteccion
         ret, frame = self.cap.read()
         if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             tamaño_widget = self.vistaCamara.size()
             ancho_widget = tamaño_widget.width()
             alto_widget = tamaño_widget.height()
 
             frame_redimensionado = cv2.resize(frame, (ancho_widget, alto_widget))
+            frame_mostrar = fcv.previsualizarVideo(frame, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1)
+            # frame_mostrar = cv2.resize(frame, (ancho_widget, alto_widget))
 
-            imagen = QtGui.QImage(frame_redimensionado, frame_redimensionado.shape[1], frame_redimensionado.shape[0], frame_redimensionado.strides[0], QtGui.QImage.Format_RGB888)
+            imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(imagen)
             self.vistaCamara.setPixmap(pixmap)
             
             if self.iniciar_captura is not None:
                 frame_writer = cv2.cvtColor(frame_redimensionado, cv2.COLOR_RGB2BGR)
                 self.iniciar_captura.write(frame_writer)
+    """
+    def actualizarVistaCamara(self):
+        # Modificar esta funcion para que muestre las marcas de deteccion
+        tamaño_widget = self.vistaCamara.size()
+        ancho_widget = tamaño_widget.width()
+        alto_widget = tamaño_widget.height()
+
+        frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1, self.seleccion_color_calibracion)
+        # frame_mostrar = cv2.resize(frame, (ancho_widget, alto_widget))
+
+        imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap.fromImage(imagen)
+        self.vistaCamara.setPixmap(pixmap)
+            
+        if self.iniciar_captura is not None:
+            frame_writer = cv2.cvtColor(frame_original, cv2.COLOR_RGB2BGR)
+            self.iniciar_captura.write(frame_writer)
 
     def iniciarCamara(self, indice_camara):
         self.cap = cv2.VideoCapture(indice_camara)
