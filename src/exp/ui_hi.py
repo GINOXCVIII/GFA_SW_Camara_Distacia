@@ -14,7 +14,7 @@ from PyQt5.QtGui import QColor, QPixmap, QKeyEvent
 from PyQt5.QtCore import Qt, QTimer
 import numpy as np
 import cv2
-import threading
+import time
 
 import f_camara_deteccion as fcd
 import f_captura_video as fcv
@@ -33,7 +33,7 @@ class Ui_MainWindow(QMainWindow):
         self.seleccion_camara = self.indiceCamara(camaras)
         self.selecciones_camaras = []
         
-        self.seleccion_video = "/tmp"
+        self.seleccion_video = "/tmp/"
         
         self.estado_boton = False
         
@@ -44,6 +44,7 @@ class Ui_MainWindow(QMainWindow):
         self.selecciones_colores_2 = []
         self.selecciones_colores_c = []
         
+        self.iniciar_captura = None
         self.guardar_video = False
         self.dos_objetos = False
 
@@ -233,9 +234,13 @@ class Ui_MainWindow(QMainWindow):
         if not self.estado_boton:
             self.botonIniciar.setText("Detener")
             self.estado_boton = True
+            self.comenzarGrabacion()
         else:
             self.botonIniciar.setText("Iniciar")
             self.estado_boton = False
+            if self.iniciar_captura is not None:
+                self.iniciar_captura.release()
+                self.iniciar_captura = None
 
     def validarIngresoReferencia(self):
         rfs = (self.entradaReferencia.text()).replace(',', '.') # Siempre es str
@@ -325,6 +330,7 @@ class Ui_MainWindow(QMainWindow):
                 fcd.iniciar_deteccion(self.seleccion_color_obj1, cap, self.ref_seleccionada, False, True, "ui")
 
     def actualizarVistaCamara(self):
+        # Modificar esta funcion para que muestre las marcas de deteccion
         ret, frame = self.cap.read()
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -337,16 +343,36 @@ class Ui_MainWindow(QMainWindow):
             imagen = QtGui.QImage(frame_redimensionado, frame_redimensionado.shape[1], frame_redimensionado.shape[0], frame_redimensionado.strides[0], QtGui.QImage.Format_RGB888)
             pixmap = QtGui.QPixmap.fromImage(imagen)
             self.vistaCamara.setPixmap(pixmap)
+            
+            if self.iniciar_captura is not None:
+                frame_writer = cv2.cvtColor(frame_redimensionado, cv2.COLOR_RGB2BGR)
+                self.iniciar_captura.write(frame_writer)
 
     def iniciarCamara(self, indice_camara):
         self.cap = cv2.VideoCapture(indice_camara)
-        self.timer.start(29.99)
+        # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+        self.fps = 10 # Funciono ???
+        self.timer.start(int(1000 / self.fps)) # funcionaria 1000 * (1 / fps), fps = 30?
 
     def cambiarCamara(self, seleccion_camara):
         print(seleccion_camara, self.seleccion_camara, self.cap.isOpened())
         if self.cap.isOpened():
             self.cap.release()
-            self.iniciarCamara(seleccion_camara) 
+            self.iniciarCamara(seleccion_camara)
+            
+    def comenzarGrabacion(self):
+        fecha = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
+        nombre_archivo = fecha[5:7]+"-"+fecha[8:11]+"-"+fecha[12:16]+"_"+fecha[17:25]+".avi"
+        self.seleccion_video = "/tmp/"+nombre_archivo
+        
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        fps = self.fps
+        
+        tamaño_widget = self.vistaCamara.size()
+        ancho_widget = tamaño_widget.width()
+        alto_widget = tamaño_widget.height()
+        
+        self.iniciar_captura = cv2.VideoWriter(self.seleccion_video, fourcc, fps, (ancho_widget, alto_widget))
         
 # ------------------------------------------------------------------------------------------------
         
