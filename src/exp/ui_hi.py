@@ -236,9 +236,12 @@ class Ui_MainWindow(QMainWindow):
             
     def cambiarBotonInicar(self):
         if not self.estado_boton:
-            self.botonIniciar.setText("Detener")
-            self.estado_boton = True
-            self.comenzarGrabacion(self.guardar_video)
+            if self.ref_seleccionada < 0:
+                print("Referencia invalida")
+            else:
+                self.botonIniciar.setText("Detener")
+                self.estado_boton = True
+                self.comenzarGrabacion(self.guardar_video)
         else:
             self.botonIniciar.setText("Iniciar")
             self.estado_boton = False
@@ -336,11 +339,12 @@ class Ui_MainWindow(QMainWindow):
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
                 cap = cv2.VideoCapture(self.seleccion_video)
-                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, True, "ui")
+                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, True, "ui", self.dos_objetos)
 
     def procesarGrabacion(self):
+        # Hacer para que borre la grabacion si no se puso guardar video
         cap = cv2.VideoCapture(self.seleccion_video)
-        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, False, "ui")
+        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, False, "ui", self.dos_objetos)
 
     def actualizarVistaCamara(self):
         # Modificar esta funcion para que muestre las marcas de deteccion
@@ -348,7 +352,7 @@ class Ui_MainWindow(QMainWindow):
         ancho_widget = tamaño_widget.width()
         alto_widget = tamaño_widget.height()
 
-        frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1, self.seleccion_color_calibracion)
+        frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, self.dos_objetos)
         # frame_mostrar = cv2.resize(frame, (ancho_widget, alto_widget))
 
         imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)

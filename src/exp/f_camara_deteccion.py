@@ -195,7 +195,7 @@ def calibracion(frame, ref, oc, colcal, check):
 
 # --------------------------------------------------------------------------
 
-def deteccion_objeto(frame, c):
+def deteccion_objeto(frame, c, dos_objetos):
     # Vale la pena usarla? Es mucha la mejora a cambio de reducir el rendimiento?
     def filtro_color(frame, color):
         mask = cv2.inRange(frame, color[0], color[1]) # _, lower, higher
@@ -219,7 +219,7 @@ def deteccion_objeto(frame, c):
         nuevoContorno = cv2.convexHull(contours_sorted[0])
         cv2.drawContours(frame, [nuevoContorno], -1, (200,5,255), 1)
         # Como puedo hacer esta logica de forma que pueda detectar los objetos que se me canten
-        if len(contours_sorted) > 1:
+        if len(contours_sorted) > 1 and dos_objetos:
             area2 = cv2.contourArea(contours_sorted[1])
             nuevoContorno2 = cv2.convexHull(contours_sorted[1])
             cv2.drawContours(frame, [nuevoContorno2], -1, (200,5,255), 1)
@@ -228,8 +228,8 @@ def deteccion_objeto(frame, c):
 
 # --------------------------------------------------------------------------
 
-def seguimiento_objeto(frame, c, origen, proporcion):
-    contours_sorted = deteccion_objeto(frame, c)
+def seguimiento_objeto(frame, c, origen, proporcion, dos_objetos):
+    contours_sorted = deteccion_objeto(frame, c, dos_objetos)
 
     # Centro del objeto
     centro_objeto = centros(contours_sorted, origen)[0]
@@ -246,7 +246,7 @@ def seguimiento_objeto(frame, c, origen, proporcion):
 
 # --------------------------------------------------------------------------
 
-def iniciar_deteccion(color, colcal, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo):
+def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo, dos_objetos):
     
     def interfaz_texto(frame, pos, pos_cm, d, d_cm, ct):
         h, w = frame.shape[:2]
@@ -261,6 +261,7 @@ def iniciar_deteccion(color, colcal, cap, ref, mostrar_calibrado, mostrar_frame,
         
     # ----------------------------------------------------------------------
     posicion_objeto = []
+    posicion_objeto2 = []
     
     tiempo_proceso = 0
     tiempo_acumulado = 0
@@ -289,6 +290,20 @@ def iniciar_deteccion(color, colcal, cap, ref, mostrar_calibrado, mostrar_frame,
                     t += [0, 0, 0, 0]
                     x += [0, 0, 0, 0]
                     y += [0, 0, 0, 0]
+                
+                if dos_objetos:
+                    t2, x2, y2 = [], [], []
+                    for p in posicion_objeto2:
+                        t.append(p[0])
+                        x.append(p[3])
+                        y.append(p[4])
+                    if len(t) <= 3:
+                        t2 += [0, 0, 0, 0]
+                        x2 += [0, 0, 0, 0]
+                        y2 += [0, 0, 0, 0]
+                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, nombre_archivo)
+                    graficar(t2[:-3], x2[:-3], y2[:-3]) # :-3
+                
                 guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, nombre_archivo)
                 graficar(t[:-3], x[:-3], y[:-3]) # :-3
                 cap.release()
@@ -306,27 +321,33 @@ def iniciar_deteccion(color, colcal, cap, ref, mostrar_calibrado, mostrar_frame,
 
             # Obtengo tiempos correctos, solo para archivos de video
             if mostrar_calibrado:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+                # si detecto 2 colores? condicion
+                if dos_objetos:
+                    centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
                 
                 if mostrar_frame:
-                    interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+                    # interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                     cv2.imshow('frame', frame_calibrado)
             
             else:
                 # puse frame_calibrado aca tambien. las mediciones se hacen con frame_calibrado
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px)
+                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+                if dos_objetos:
+                    centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
                 tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
 
                 if mostrar_frame:
-                    interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+                    # interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
                     cv2.imshow('frame', frame)
             
-            print("Procesando ", posicion_objeto)
+            print("Procesando ", posicion_objeto, posicion_objeto2)
             posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+            if dos_objetos:
+                posicion_objeto2.append((round(tiempo_reproduccion, 2), posicion2[0], posicion2[1], posicion_cm2[0], posicion_cm2[1], distancia_centro2, distancia_centro_cm2))
             
-# --------------------------------------------------------------------------
-# Se podrá pasar esta funcion y la de graficar a main_scr.py?    
+# --------------------------------------------------------------------------  
 
 def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
     # Cambiar para que la direccion donde guardar sea parametro
@@ -361,6 +382,8 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
 # --------------------------------------------------------------------------
 
 def graficar(t, x, y):
+    print(f"t: {t} x: {x} y: {y}")
+    print("len", len(t), len(x), len(y))
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_plot = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]
     fig = plt.figure(tight_layout = True)
