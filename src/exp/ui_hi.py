@@ -15,6 +15,7 @@ from PyQt5.QtCore import Qt, QTimer
 import numpy as np
 import cv2
 import time
+import os
 
 import f_camara_deteccion as fcd
 import f_captura_video as fcv
@@ -345,15 +346,15 @@ class Ui_MainWindow(QMainWindow):
         # Hacer para que borre la grabacion si no se puso guardar video
         cap = cv2.VideoCapture(self.seleccion_video)
         fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, False, "ui", self.dos_objetos)
+        if not self.guardar_video:
+            print(f"Archivo {self.seleccion_video} borrado")
+            os.remove(self.seleccion_video)
 
     def actualizarVistaCamara(self):
         # Modificar esta funcion para que muestre las marcas de deteccion
         tamaño_widget = self.vistaCamara.size()
-        ancho_widget = tamaño_widget.width()
-        alto_widget = tamaño_widget.height()
 
         frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, self.dos_objetos)
-        # frame_mostrar = cv2.resize(frame, (ancho_widget, alto_widget))
 
         imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)
         pixmap = QtGui.QPixmap.fromImage(imagen)

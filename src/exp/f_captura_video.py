@@ -7,9 +7,6 @@ Created on Tue Apr 29 19:18:48 2024
 """
 
 import cv2
-import os
-import sys
-import time
 
 import f_camara_deteccion as fcd
 
@@ -19,7 +16,7 @@ def previsualizarVideo(cap, dimensiones, referencia, color, color2, color_calibr
 	ret, frame = cap.read()
 	if ret:
 		objeto = []
-		objetos2 = []
+		objeto2 = []
 		frame_redimensionado = cv2.resize(frame, (dimensiones.width(), dimensiones.height()))
 		frame_original = frame_redimensionado.copy()
 		frame_original = cv2.cvtColor(frame_original, cv2.COLOR_BGR2RGB)

@@ -263,7 +263,6 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
     posicion_objeto = []
     posicion_objeto2 = []
     
-    tiempo_proceso = 0
     tiempo_acumulado = 0
     cte_proporcion_cm_px = 0
     centro_plano = (0, 0)
@@ -273,7 +272,6 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         
     while True:
-        start_time = cv2.getTickCount()
         
         if not reproduccion_pausada:
             ret, frame = cap.read()
@@ -294,18 +292,18 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
                 if dos_objetos:
                     t2, x2, y2 = [], [], []
                     for p in posicion_objeto2:
-                        t.append(p[0])
-                        x.append(p[3])
-                        y.append(p[4])
+                        t2.append(p[0])
+                        x2.append(p[3])
+                        y2.append(p[4])
                     if len(t) <= 3:
                         t2 += [0, 0, 0, 0]
                         x2 += [0, 0, 0, 0]
                         y2 += [0, 0, 0, 0]
-                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, nombre_archivo)
-                    graficar(t2[:-3], x2[:-3], y2[:-3]) # :-3
+                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2")
+                    graficar(t2[:-3], x2[:-3], y2[:-3], "Grafico posicion Objeto 2") # :-3
                 
-                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, nombre_archivo)
-                graficar(t[:-3], x[:-3], y[:-3]) # :-3
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1")
+                graficar(t[:-3], x[:-3], y[:-3], "Grafico posicion Objeto 1") # :-3
                 cap.release()
                 cv2.destroyAllWindows()
                 break
@@ -349,25 +347,22 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
             
 # --------------------------------------------------------------------------  
 
-def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
-    # Cambiar para que la direccion donde guardar sea parametro
-    # Dar la opcion para guardar o no el txt
+def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo):
     root = tk.Tk()
     root.withdraw()
     
-    directorio_destino = filedialog.askdirectory(title="Guardar archivo de texto con coordenadas")
+    directorio_destino = filedialog.askdirectory(title=titulo)
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
 
     if directorio_destino:
-        # nombre_archivo = nombre_archivo
         ruta_archivo = f"{directorio_destino}/{nombre_archivo}"
-        
+        tiempo = (lista_1[:-3].pop())[0]
         try:
             with open(ruta_archivo, 'w') as archivo:
                 archivo.write(f"{date}\n")
-                archivo.write(f"Tiempo total del proceso: {tiempo_a}\n")
+                archivo.write(f"Tiempo total del proceso: {tiempo}\n")
                 archivo.write("\nCoordenadas objeto 1: \n")
                 archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)      Dist. centro (px)      Dist. centro (cm)\n")
                 for tupla in lista_1[:-3]:
@@ -381,11 +376,8 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1,nombre_archivo):
 
 # --------------------------------------------------------------------------
 
-def graficar(t, x, y):
-    print(f"t: {t} x: {x} y: {y}")
-    print("len", len(t), len(x), len(y))
-    date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
-    nombre_plot = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+" "+date[17:25]
+def graficar(t, x, y, titulo_grafico):
+
     fig = plt.figure(tight_layout = True)
     gs = gridspec.GridSpec(1, 2)
 
@@ -411,6 +403,7 @@ def graficar(t, x, y):
     avgy = ([t[0], t[len(t)-1]], [np.average(y_min), np.average(y_min)])
     average = [avgx, avgy]
     print("promedio: ", average[0], average[1])
+    plt.title(titulo_grafico)
     
     for i in range(2):
         p = plot[i]       
