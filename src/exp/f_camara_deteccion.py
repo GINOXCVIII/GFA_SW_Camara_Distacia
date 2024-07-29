@@ -383,7 +383,7 @@ def graficar(t, x, y, titulo_grafico):
 
     plot = [(t, x), (t, y)]
     titulo = ['x(t)', 'y(t)']
-    leyenda = ['Valor medio', 'VM Minimos']
+    leyenda = ['Valor medio', 'Altura minima Promedio']
     
     if len(x) == 0:
         rango = 1
