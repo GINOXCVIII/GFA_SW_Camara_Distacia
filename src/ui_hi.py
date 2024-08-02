@@ -30,7 +30,9 @@ class Ui_MainWindow(QMainWindow):
         w = 677
         h = 385
         
-        self.ref_seleccionada = -1
+        self.ref_seleccionada = 25
+        self.referencia_x = 71.5
+        self.referencia_y = 43
         
         self.seleccion_camara = self.indiceCamara(camaras)
         self.selecciones_camaras = []
@@ -76,38 +78,61 @@ class Ui_MainWindow(QMainWindow):
         self.botonIniciar.clicked.connect(self.cambiarBotonInicar)
         # self.botonIniciar.clicked.connect(self.printearMierda) Le puedo poner 2 funciones
         
-        # Entrada de referencia y boton Aplicar
+        # Entrada de referencia x y boton Aplicar
         self.entradaReferencia = QtWidgets.QDoubleSpinBox(self.centralwidget)
         self.entradaReferencia.setGeometry(QtCore.QRect(480, 140, 111, 31))
         self.entradaReferencia.setObjectName("entradaReferencia")
         self.entradaReferencia.setMaximum(999999.99)  # Establecer el máximo valor permitido
         self.entradaReferencia.setDecimals(2)
+        self.entradaReferencia.setValue(self.referencia_x)
+        self.entradaReferencia.setSingleStep(0.1)
         
         self.botonAplicar = QtWidgets.QPushButton(self.centralwidget)
         self.botonAplicar.setGeometry(QtCore.QRect(600, 140, 71, 31))
         self.botonAplicar.setObjectName("botonAplicar")
         
-        self.botonAplicar.clicked.connect(self.validarIngresoReferencia)
+        self.botonAplicar.clicked.connect(self.validarIngresoReferenciaX)
         
-        # Label referencia
+        # Label referencia x
         self.labelReferencia = QtWidgets.QLabel(self.centralwidget)
         self.labelReferencia.setGeometry(QtCore.QRect(480, 110, 201, 21))
         self.labelReferencia.setObjectName("labelReferencia")
+        
+        # Entrada de referencia y y boton Aplicar
+        self.entradaReferenciaY = QtWidgets.QDoubleSpinBox(self.centralwidget)
+        self.entradaReferenciaY.setGeometry(QtCore.QRect(480, 215, 111, 31))
+        self.entradaReferenciaY.setObjectName("entradaReferenciaY")
+        self.entradaReferenciaY.setMaximum(999999.99)  # Establecer el máximo valor permitido
+        self.entradaReferenciaY.setDecimals(2)
+        self.entradaReferenciaY.setValue(self.referencia_y)
+        self.entradaReferenciaY.setSingleStep(0.1)
+        
+        self.botonAplicarY = QtWidgets.QPushButton(self.centralwidget)
+        self.botonAplicarY.setGeometry(QtCore.QRect(600, 215, 71, 31))
+        self.botonAplicarY.setObjectName("botonAplicarY")
+        
+        self.botonAplicarY.clicked.connect(self.validarIngresoReferenciaY)
+        
+        # Label referencia y
+        self.labelReferenciaY = QtWidgets.QLabel(self.centralwidget)
+        self.labelReferenciaY.setGeometry(QtCore.QRect(480, 185, 201, 21))
+        self.labelReferenciaY.setObjectName("labelReferenciaY")
     
         # Check Guardar Video
         self.checkGuardarVideo = QtWidgets.QCheckBox(self.centralwidget)
-        self.checkGuardarVideo.setGeometry(QtCore.QRect(480, 180, 201, 20))
+        self.checkGuardarVideo.setGeometry(QtCore.QRect(480, 270, 201, 20))
         self.checkGuardarVideo.setObjectName("checkGuardarVideo")
         
         self.checkGuardarVideo.stateChanged.connect(self.actualizarGuardarVideo)
         
         # Check Detectar Dos Objetos
         self.checkDetectarDos = QtWidgets.QCheckBox(self.centralwidget)
-        self.checkDetectarDos.setGeometry(QtCore.QRect(480, 210, 201, 20))
+        self.checkDetectarDos.setGeometry(QtCore.QRect(480, 300, 201, 20))
         self.checkDetectarDos.setObjectName("checkDetectarDos")
         
         self.checkDetectarDos.stateChanged.connect(self.actualizarDosObjetos)
         
+        # -
         tonChan.setCentralWidget(self.centralwidget)
         
         self.statusbar = QtWidgets.QStatusBar(tonChan)
@@ -237,8 +262,9 @@ class Ui_MainWindow(QMainWindow):
             
     def cambiarBotonInicar(self):
         if not self.estado_boton:
-            if self.ref_seleccionada < 0:
-                print("Referencia invalida")
+            if self.referencia_x < 0 and self.referencia_y < 0:
+            # if self.ref_seleccionada < 0:
+                print("Referencia(s) invalida(s)")
             else:
                 self.botonIniciar.setText("Detener")
                 self.estado_boton = True
@@ -251,11 +277,19 @@ class Ui_MainWindow(QMainWindow):
                 self.iniciar_captura = None
                 self.procesarGrabacion()
 
-    def validarIngresoReferencia(self):
+    def validarIngresoReferenciaX(self):
         rfs = (self.entradaReferencia.text()).replace(',', '.') # Siempre es str
         try:
-            self.ref_seleccionada = abs(float(rfs))
-            print(f"Valor ingresado: {rfs} Numerico: {self.ref_seleccionada}")
+            self.referencia_x = abs(float(rfs))
+            print(f"Valor ingresado: {rfs} Numerico: {self.referencia_x} Para x")
+        except ValueError:
+            print("Error: La cadena contiene caracteres no válidos para convertir a float")
+            
+    def validarIngresoReferenciaY(self):
+        rfs = (self.entradaReferenciaY.text()).replace(',', '.') # Siempre es str
+        try:
+            self.referencia_y = abs(float(rfs))
+            print(f"Valor ingresado: {rfs} Numerico: {self.referencia_y} Para y")
         except ValueError:
             print("Error: La cadena contiene caracteres no válidos para convertir a float")
 
@@ -274,6 +308,9 @@ class Ui_MainWindow(QMainWindow):
     
     def tuplaColor(self, c1, c2):
         return (np.array(c1), np.array(c2))
+
+    def tuplaReferencia(self, rx, ry):
+        return (rx, ry)
     
     def seleccionColor(self, colores, seleccion, color_cambiar):
         
@@ -335,26 +372,29 @@ class Ui_MainWindow(QMainWindow):
         if self.seleccion_color_obj1 == -1:
             print("Color no seleccionado")
         else:
-            if self.ref_seleccionada == -1:
+            # if self.ref_seleccionada == -1:
+            if self.referencia_x < 0 or self.referencia_y < 0:
                 print("Referencia no cargada")
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
                 cap = cv2.VideoCapture(self.seleccion_video)
-                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, True, "ui", self.dos_objetos)
+                referencia = tuplaReferencia(self.referencia_x, self.referencia_y)
+                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, "ui", self.dos_objetos)
 
     def procesarGrabacion(self):
         # Hacer para que borre la grabacion si no se puso guardar video
+        referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
         cap = cv2.VideoCapture(self.seleccion_video)
-        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, self.ref_seleccionada, False, False, "ui", self.dos_objetos)
+        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, False, "ui", self.dos_objetos)
         if not self.guardar_video:
-            print(f"Archivo {self.seleccion_video} borrado")
             os.remove(self.seleccion_video)
+            print(f"Archivo {self.seleccion_video} borrado")
 
     def actualizarVistaCamara(self):
         # Modificar esta funcion para que muestre las marcas de deteccion
         tamaño_widget = self.vistaCamara.size()
-
-        frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, self.ref_seleccionada, self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, self.dos_objetos)
+        referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
+        frame_original, frame_mostrar = fcv.previsualizarVideo(self.cap, tamaño_widget, referencia, self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, self.dos_objetos)
 
         imagen = QtGui.QImage(frame_mostrar, frame_mostrar.shape[1], frame_mostrar.shape[0], frame_mostrar.strides[0], QtGui.QImage.Format_RGB888)
         pixmap = QtGui.QPixmap.fromImage(imagen)
@@ -407,10 +447,12 @@ class Ui_MainWindow(QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         tonChan.setWindowTitle(_translate("tonChan", "tonChan"))
         self.botonIniciar.setText(_translate("tonChan", "Iniciar"))
-        self.labelReferencia.setText(_translate("tonChan", "Longitud lado inferior (cm)"))
+        self.labelReferencia.setText(_translate("tonChan", "Ancho (en centímetros)"))
+        self.labelReferenciaY.setText(_translate("tonChan", "Altura (en centímetros)"))
         self.checkGuardarVideo.setText(_translate("tonChan", "Guardar archivo de video"))
         self.checkDetectarDos.setText(_translate("tonChan", "Detectar dos objetos"))
         self.botonAplicar.setText(_translate("tonChan", "Aplicar"))
+        self.botonAplicarY.setText(_translate("tonChan", "Aplicar"))
         self.menuArchivo.setTitle(_translate("tonChan", "Archivo"))
         self.menuAyuda.setTitle(_translate("tonChan", "Ayuda"))
         self.menuConfiguracion.setTitle(_translate("tonChan", "Configuracion"))
