@@ -378,7 +378,7 @@ class Ui_MainWindow(QMainWindow):
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
                 cap = cv2.VideoCapture(self.seleccion_video)
-                referencia = tuplaReferencia(self.referencia_x, self.referencia_y)
+                referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
                 fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, "ui", self.dos_objetos)
 
     def procesarGrabacion(self):

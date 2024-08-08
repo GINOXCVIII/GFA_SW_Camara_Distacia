@@ -379,13 +379,13 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo):
         print("No se ha seleccionado una carpeta de destino.")
 
 # --------------------------------------------------------------------------
-
+"""
 def graficar(t, x, y, titulo_grafico):
 
-    fig = plt.figure(tight_layout = True)
-    gs = gridspec.GridSpec(1, 2)
+    # fig = plt.figure(tight_layout = True)
+    # gs = gridspec.GridSpec(1, 2)
 
-    plot = [(t, x), (t, y)]
+    graficos = [(t, x), (t, y)]
     titulo = ['x(t)', 'y(t)']
     leyenda = ['Valor medio', 'Altura minima Promedio']
     
@@ -414,28 +414,64 @@ def graficar(t, x, y, titulo_grafico):
     
     plt.title(titulo_grafico)
     
-    for i in range(2):
-        p = plot[i]       
+    for i in range(len(graficos)):
+        p = graficos[i] # graficos = [(t, x), (t, y)]
         ax = fig.add_subplot(gs[0, i])
         ax.grid(True, linestyle = '-.')
         ax.plot(p[0], p[1], 'k', label=f"Posicion {titulo[i]}")
-        ax.plot(average[i][0], average[i][1], 'r', label=f"{leyenda[i]}={average[i][1][0]:.2f}")
+        # ax.plot(average[i][0], average[i][1], 'r', label=f"{leyenda[i]}={average[i][1][0]:.2f}")
         
         # plt.xticks(range(0, rango + 1, escala))
         # plt.yticks(0, (max(p[0])) - 1, 5))
         # plt.xticks(range(0, rango_t, escala_t))
         # plt.xticks(range(0, rango + 1, escala))
-        ax.set_xlabel('t')
-        ax.set_ylabel(titulo[i])
+        # ax.set_xlabel('t')
+        # ax.set_ylabel(titulo[i])
         
         # ax.xticks(range(0, rango_t, escala_t))
 
         plt.legend()
-
+        
     fig.align_labels()
     
     plt.show()
-
+"""
+def graficar(t, x, y, titulo_grafico):
+    leyenda = ['Valor medio', 'Altura minima Promedio']
+    
+    y_np = np.array(y)
+    min_indices_y = argrelmin(y_np)[0]
+    y_min = y_np[min_indices_y]
+    promedio_x = np.average(x)
+    promedio_min_y = np.average(y_min)
+    
+    linea_vm_x = ((t[0], t[len(t)-1]), (promedio_x, promedio_x)) # (x0, xf)
+    linea_vmin_y= ((t[0], t[len(t)-1]), (promedio_min_y, promedio_min_y))
+    print("Promedios: ", np.average(x), np.average(y_min))
+    
+    fig, axs = plt.subplots(1, 2, layout='constrained')
+    plt.suptitle(titulo_grafico)
+    
+    # Grafico x(t)
+    axs[0].plot(t, x, 'k', label="Posicion x(t)")
+    axs[0].plot(linea_vm_x[0], linea_vm_x[1], 'r', label=f"{leyenda[0]}={promedio_x:.2f}")
+    axs[0].set_xlabel('t')
+    axs[0].set_ylabel('x(t)')
+    axs[0].grid(True, linestyle = '-.')
+    axs[0].legend()
+    
+    # Grafico y(t)
+    axs[1].plot(t, y, 'k', label="Posicion y(t)")
+    axs[1].plot(linea_vmin_y[0], linea_vmin_y[1], 'r', label=f"{leyenda[1]}={promedio_min_y:.2f}")
+    axs[1].set_xlabel('t')
+    axs[1].set_ylabel('y(t)')
+    axs[1].grid(True, linestyle = '-.')
+    axs[1].legend()
+    
+    fig.align_labels()
+    
+    plt.show()
+    
 # --------------------------------------------------------------------------
 
 def hard_inicio(c, r, mostrar_calibrado, mostrar_frame, nombre_archivo):
