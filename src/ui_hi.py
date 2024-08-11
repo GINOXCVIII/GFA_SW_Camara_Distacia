@@ -9,9 +9,10 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QSlider, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QCheckBox, QAction, QActionGroup, QMainWindow, QMenu
-from PyQt5.QtGui import QColor, QPixmap, QKeyEvent
-from PyQt5.QtCore import Qt, QTimer
+
+from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5.QtCore import QTimer
+
 import numpy as np
 import cv2
 import time
@@ -19,6 +20,8 @@ import os
 
 import f_camara_deteccion as fcd
 import f_captura_video as fcv
+
+from about_ui_hi import Ui_AboutWindow
 
 videopath = "Archivo de video"
 camara = "Camara"
@@ -29,6 +32,10 @@ class Ui_MainWindow(QMainWindow):
         # colores = [negro, rojo, verde, azul, amarillo, fucsia, naranja, cian]
         w = 677
         h = 385
+        
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("../asst/icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        tonChan.setWindowIcon(icon)
         
         self.ref_seleccionada = 25
         self.referencia_x = 71.5
@@ -226,6 +233,8 @@ class Ui_MainWindow(QMainWindow):
         self.actionAcercaDe = QtWidgets.QAction(tonChan)
         self.actionAcercaDe.setObjectName("actionAcercaDe")
         
+        self.actionAcercaDe.triggered.connect(self.ventanaAcercaDe)
+        
         self.action1 = QtWidgets.QAction(tonChan)
         self.action1.setObjectName("action1") # Color_Objeto_2
         
@@ -259,6 +268,18 @@ class Ui_MainWindow(QMainWindow):
             return lista_camaras[0]
         else:
             return -1
+
+    def directorioFuente(self, fuente):
+        corte = True
+        cadena = fuente
+        while corte:
+            caracter = cadena[len(cadena) - 1]
+            if caracter != "/":
+                cadena = cadena[:len(cadena) - 1]
+            else:
+                corte = False
+        
+        return cadena
             
     def cambiarBotonInicar(self):
         if not self.estado_boton:
@@ -379,13 +400,15 @@ class Ui_MainWindow(QMainWindow):
                 self.seleccion_video = self.cargarArchivoVideo()
                 cap = cv2.VideoCapture(self.seleccion_video)
                 referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
-                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, "ui", self.dos_objetos)
+                directorio_fuente = self.directorioFuente(self.seleccion_video)
+                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, directorio_fuente, self.dos_objetos)
 
     def procesarGrabacion(self):
         # Hacer para que borre la grabacion si no se puso guardar video
         referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
         cap = cv2.VideoCapture(self.seleccion_video)
-        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, False, "ui", self.dos_objetos)
+        directorio_fuente = self.directorioFuente(self.seleccion_video)
+        fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, False, directorio_fuente, self.dos_objetos)
         if not self.guardar_video:
             os.remove(self.seleccion_video)
             print(f"Archivo {self.seleccion_video} borrado")
@@ -441,6 +464,10 @@ class Ui_MainWindow(QMainWindow):
         
         self.iniciar_captura = cv2.VideoWriter(self.seleccion_video, fourcc, fps, (ancho_widget, alto_widget))
         
+    def ventanaAcercaDe(self):
+        self.acerca_de = AboutWindow()
+        self.acerca_de.show()
+        
 # ------------------------------------------------------------------------------------------------
         
     def retranslateUi(self, tonChan):
@@ -464,3 +491,18 @@ class Ui_MainWindow(QMainWindow):
         self.actionAcercaDe.setText(_translate("tonChan", "Acerca de"))
         self.actionCargarVideo.setText(_translate("tonChan", "Cargar archivo de video"))
         self.actionSalir.setText(_translate("tonChan", "Salir"))
+
+# ------------------------------------------------------------------------------------------------
+
+class AboutWindow(QtWidgets.QMainWindow):
+    
+    def init(self):
+        app = QtWidgets.QApplication([])
+        window = AboutWindow()
+        window.show()
+        app.exec_()
+    
+    def __init__(self):
+        super(AboutWindow, self).__init__()
+        self.about = Ui_AboutWindow()
+        self.about.setupUi(self)

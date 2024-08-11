@@ -6,9 +6,7 @@ Created on Tue Jul 1 18:18:48 2024
 @author: imano-oh
 """
 
-from PyQt5 import QtWidgets, uic
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5 import QtWidgets
 from ui_hi import Ui_MainWindow
 import sys
 

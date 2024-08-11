@@ -11,12 +11,10 @@ import numpy as np
 import time
 import tkinter as tk
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from operator import itemgetter, attrgetter
+from operator import itemgetter
 from tkinter import filedialog
 from scipy.signal import argrelmin
 
-import f_busqueda_camaras as bc
 import f_colores as col
 
 colores = col.lista_colores() # [negro, rojo, verde, azul, amarillo, fucsia, naranja, cian]
@@ -250,7 +248,7 @@ def seguimiento_objeto(frame, c, origen, proporcion, dos_objetos):
 
 # --------------------------------------------------------------------------
 
-def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostrar_frame, nombre_archivo, dos_objetos):
+def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostrar_frame, directorio_fuente, dos_objetos):
     
     def interfaz_texto(frame, pos, pos_cm, d, d_cm, ct):
         h, w = frame.shape[:2]
@@ -303,10 +301,10 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
                         t2 += [0, 0, 0, 0]
                         x2 += [0, 0, 0, 0]
                         y2 += [0, 0, 0, 0]
-                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2")
+                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2", directorio_fuente)
                     graficar(t2[:-3], x2[:-3], y2[:-3], "Grafico posicion Objeto 2") # :-3
                 
-                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1")
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1", directorio_fuente)
                 graficar(t[:-3], x[:-3], y[:-3], "Grafico posicion Objeto 1") # :-3
                 cap.release()
                 cv2.destroyAllWindows()
@@ -351,11 +349,11 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
             
 # --------------------------------------------------------------------------  
 
-def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo):
+def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo, directorio_fuente):
     root = tk.Tk()
     root.withdraw()
     
-    directorio_destino = filedialog.askdirectory(title=titulo)
+    directorio_destino = filedialog.askdirectory(title=titulo, initialdir=directorio_fuente)
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
     nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
@@ -379,63 +377,7 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo):
         print("No se ha seleccionado una carpeta de destino.")
 
 # --------------------------------------------------------------------------
-"""
-def graficar(t, x, y, titulo_grafico):
 
-    # fig = plt.figure(tight_layout = True)
-    # gs = gridspec.GridSpec(1, 2)
-
-    graficos = [(t, x), (t, y)]
-    titulo = ['x(t)', 'y(t)']
-    leyenda = ['Valor medio', 'Altura minima Promedio']
-    
-    rango_t = int(max(t)) + 1
-    escala_t = int(np.sqrt(rango_t)) + 1
-    
-    if len(x) == 0:
-        rango = 1
-        escala = 1
-    else:
-        rango = int(t[len(x) - 1]) + 1
-        if rango < 30:
-            escala = 2
-        else:
-            escala = 5   
-    
-    print(f"rango t: {rango_t} escala t: {escala_t}")
-
-    y_np = np.array(y)
-    min_indices_y = argrelmin(y_np)[0]
-    y_min = y_np[min_indices_y]
-    avgx = ([t[0], t[len(t)-1]], [np.average(x), np.average(x)])
-    avgy = ([t[0], t[len(t)-1]], [np.average(y_min), np.average(y_min)])
-    average = [avgx, avgy]
-    print("promedio: ", average[0], average[1])
-    
-    plt.title(titulo_grafico)
-    
-    for i in range(len(graficos)):
-        p = graficos[i] # graficos = [(t, x), (t, y)]
-        ax = fig.add_subplot(gs[0, i])
-        ax.grid(True, linestyle = '-.')
-        ax.plot(p[0], p[1], 'k', label=f"Posicion {titulo[i]}")
-        # ax.plot(average[i][0], average[i][1], 'r', label=f"{leyenda[i]}={average[i][1][0]:.2f}")
-        
-        # plt.xticks(range(0, rango + 1, escala))
-        # plt.yticks(0, (max(p[0])) - 1, 5))
-        # plt.xticks(range(0, rango_t, escala_t))
-        # plt.xticks(range(0, rango + 1, escala))
-        # ax.set_xlabel('t')
-        # ax.set_ylabel(titulo[i])
-        
-        # ax.xticks(range(0, rango_t, escala_t))
-
-        plt.legend()
-        
-    fig.align_labels()
-    
-    plt.show()
-"""
 def graficar(t, x, y, titulo_grafico):
     leyenda = ['Valor medio', 'Altura minima Promedio']
     

@@ -2,8 +2,7 @@ import numpy as np
 
 # Amarillo es el mejor para camara. Los demas son complicados de detectar
 # Lista de colores
-# low_green = np.array([50, 100, 100])
-# high_green = np.array([70, 255, 255])
+
 # low_green = np.array([34, 16, 0])
 # high_green = np.array([81, 255, 250])
 low_green = np.array([34, 16, 0])
@@ -12,8 +11,6 @@ high_green = np.array([100, 250, 250])
 low_red = np.array([159, 50, 70])
 high_red = np.array([180, 255, 255])
 
-# low_blue = np.array([110, 50, 50])
-# high_blue = np.array([130, 255, 255])
 low_blue = np.array([85, 21, 0])
 high_blue = np.array([130, 255, 255])
 
@@ -23,8 +20,6 @@ high_yellow = np.array([35, 255, 255])
 low_pink = np.array([140, 50, 50])
 high_pink = np.array([170, 255, 255])
 
-# low_orange = np.array([10, 100, 100])
-# high_orange = np.array([20, 255, 255])
 low_orange = np.array([7, 100, 100])
 high_orange = np.array([24, 255, 255])
 

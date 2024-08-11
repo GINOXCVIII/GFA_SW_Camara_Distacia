@@ -7,7 +7,6 @@ Created on Tue Sep  5 10:43:01 2023
 """
 
 import cv2
-import numpy
 from PyQt5.QtMultimedia import QCameraInfo
 
 # Me da los indices de las camaras
