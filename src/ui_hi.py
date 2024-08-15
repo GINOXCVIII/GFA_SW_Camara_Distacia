@@ -472,7 +472,7 @@ class Ui_MainWindow(QMainWindow):
         
     def retranslateUi(self, tonChan):
         _translate = QtCore.QCoreApplication.translate
-        tonChan.setWindowTitle(_translate("tonChan", "tonChan"))
+        tonChan.setWindowTitle(_translate("tonChan", "Pendulo"))
         self.botonIniciar.setText(_translate("tonChan", "Iniciar"))
         self.labelReferencia.setText(_translate("tonChan", "Ancho (en centímetros)"))
         self.labelReferenciaY.setText(_translate("tonChan", "Altura (en centímetros)"))
