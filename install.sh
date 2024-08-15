@@ -30,7 +30,7 @@ Exec=pendulo-frd
 Icon=$SCRIPT_PATH/asst/icon.ico
 Terminal=false
 Type=Application
-Categories=Development
+Categories=Development;
 " > Pendulo.desktop
 
 chmod +x Pendulo.desktop

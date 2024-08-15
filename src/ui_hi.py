@@ -382,10 +382,12 @@ class Ui_MainWindow(QMainWindow):
         
     def cargarArchivoVideo(self):
         # Hacer algo si por alguna razon no cargo nada, es decir, le doy a cancelar
+        usr = os.path.expanduser("~")
+        directorio_inicial = usr+"/Desktop"
         opciones = QFileDialog.Options()
         opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
         
-        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", "", "Todos los Archivos (*)", options=opciones)
+        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", directorio_inicial, "Archivos de video (*.avi *.mp4)", options=opciones)
 
         return archivo
     
@@ -398,10 +400,12 @@ class Ui_MainWindow(QMainWindow):
                 print("Referencia no cargada")
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
-                cap = cv2.VideoCapture(self.seleccion_video)
-                referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
-                directorio_fuente = self.directorioFuente(self.seleccion_video)
-                fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, directorio_fuente, self.dos_objetos)
+                print("carajo", self.seleccion_video)
+                if len(self.seleccion_video) > 1:
+                    cap = cv2.VideoCapture(self.seleccion_video)
+                    referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
+                    directorio_fuente = self.directorioFuente(self.seleccion_video)
+                    fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, directorio_fuente, self.dos_objetos)
 
     def procesarGrabacion(self):
         # Hacer para que borre la grabacion si no se puso guardar video
