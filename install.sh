@@ -25,7 +25,8 @@ echo "bin pendulo-frd creado"
 cd $app
 echo "[Desktop Entry]
 Name=Pendulo
-Exec=$SCRIPT_PATH/start.sh
+# Exec=$SCRIPT_PATH/start.sh
+Exec=pendulo-frd
 Icon=$SCRIPT_PATH/asst/icon.ico
 Terminal=false
 Type=Application
@@ -35,6 +36,8 @@ Categories=Development
 chmod +x Pendulo.desktop
 
 echo ".desktop creado"
+
+echo "Listo."
 
 
 
