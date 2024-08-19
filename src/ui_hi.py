@@ -65,6 +65,9 @@ class Ui_MainWindow(QMainWindow):
         self.centralwidget = QtWidgets.QWidget(tonChan)
         self.centralwidget.setObjectName("centralwidget")
         
+        usr = os.path.expanduser("~")
+        self.directorio_inicial = usr+"/Desktop"
+        
         # Widget vista de la camara
         self.vistaCamara = QtWidgets.QLabel(self.centralwidget)
         self.vistaCamara.setGeometry(QtCore.QRect(10, 0, 461, 341))
@@ -216,7 +219,6 @@ class Ui_MainWindow(QMainWindow):
                 camara.setCheckable(True)
                 camara.triggered.connect(lambda _, camara=camara: self.seleccionCamara(camara))
                 self.selecciones_camaras.append(camara)
-            # (self.grupoCamaras).connect(lambda _, camara=camara: self.seleccionCamara(camara))
             self.selecciones_camaras[0].setChecked(True)
         else:
                 self.menuCamara.addAction("No hay camaras disponibles")
@@ -284,7 +286,6 @@ class Ui_MainWindow(QMainWindow):
     def cambiarBotonInicar(self):
         if not self.estado_boton:
             if self.referencia_x < 0 and self.referencia_y < 0:
-            # if self.ref_seleccionada < 0:
                 print("Referencia(s) invalida(s)")
             else:
                 self.botonIniciar.setText("Detener")
@@ -346,7 +347,6 @@ class Ui_MainWindow(QMainWindow):
             # color = (color_bajo, color_alto, nombre_color_str)
             for color in lista_colores:
                 if nombre_color in color:
-                    # tupla_color = (color[0], color[1])
                     tupla_color = self.tuplaColor(color[0], color[1])
                     break
             return tupla_color
@@ -381,13 +381,13 @@ class Ui_MainWindow(QMainWindow):
         print(f"Detectar 2 objetos: {self.dos_objetos}")
         
     def cargarArchivoVideo(self):
-        # Hacer algo si por alguna razon no cargo nada, es decir, le doy a cancelar
-        usr = os.path.expanduser("~")
-        directorio_inicial = usr+"/Desktop"
         opciones = QFileDialog.Options()
         opciones |= QFileDialog.ReadOnly  # Opcional: abrir el archivo en modo solo lectura
         
-        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", directorio_inicial, "Archivos de video (*.avi *.mp4)", options=opciones)
+        archivo, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo", self.directorio_inicial, "Archivos de video (*.avi *.mp4)", options=opciones)
+        
+        if ("/" in archivo) or (len(archivo) > 0):
+            self.directorio_inicial = self.directorioFuente(archivo)
 
         return archivo
     
@@ -395,20 +395,17 @@ class Ui_MainWindow(QMainWindow):
         if self.seleccion_color_obj1 == -1:
             print("Color no seleccionado")
         else:
-            # if self.ref_seleccionada == -1:
             if self.referencia_x < 0 or self.referencia_y < 0:
                 print("Referencia no cargada")
             else:
                 self.seleccion_video = self.cargarArchivoVideo()
-                print("carajo", self.seleccion_video)
-                if len(self.seleccion_video) > 1:
+                if len(self.seleccion_video) > 0:
                     cap = cv2.VideoCapture(self.seleccion_video)
                     referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
                     directorio_fuente = self.directorioFuente(self.seleccion_video)
                     fcd.iniciar_deteccion(self.seleccion_color_obj1, self.seleccion_color_obj2, self.seleccion_color_calibracion, cap, referencia, False, True, directorio_fuente, self.dos_objetos)
 
     def procesarGrabacion(self):
-        # Hacer para que borre la grabacion si no se puso guardar video
         referencia = self.tuplaReferencia(self.referencia_x, self.referencia_y)
         cap = cv2.VideoCapture(self.seleccion_video)
         directorio_fuente = self.directorioFuente(self.seleccion_video)

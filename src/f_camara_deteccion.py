@@ -269,83 +269,83 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
     cte_proporcion_cm_px = 0
     centro_plano = (0, 0)
     
-    reproduccion_pausada = False
-    
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         
     while True:
         
-        if not reproduccion_pausada:
-            ret, frame = cap.read()
-            
-            # Condicion de corte
-            if (cv2.pollKey() & 0xFF == ord('q')) or (not ret):
-                print("pressed q")
-                t, x, y = [], [], []
-                for p in posicion_objeto:
-                    t.append(p[0])
-                    x.append(p[3])
-                    y.append(p[4])
-                if len(t) <= 3:
-                    t += [0, 0, 0, 0]
-                    x += [0, 0, 0, 0]
-                    y += [0, 0, 0, 0]
-                
-                if dos_objetos:
-                    t2, x2, y2 = [], [], []
-                    for p in posicion_objeto2:
-                        t2.append(p[0])
-                        x2.append(p[3])
-                        y2.append(p[4])
-                    if len(t) <= 3:
-                        t2 += [0, 0, 0, 0]
-                        x2 += [0, 0, 0, 0]
-                        y2 += [0, 0, 0, 0]
-                    guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2", directorio_fuente)
-                    graficar(t2[:-3], x2[:-3], y2[:-3], "Grafico posicion Objeto 2") # :-3
-                
-                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1", directorio_fuente)
-                graficar(t[:-3], x[:-3], y[:-3], "Grafico posicion Objeto 1") # :-3
-                cap.release()
-                cv2.destroyAllWindows()
-                break
-                
-            try:
-                h, w = frame.shape[:2]
-                centro_plano = (int(w/2), int(h/2))
-            except AttributeError:
-                print("frame None", centro_plano)
-            
-            # Calibracion: obtengo frame calibrado
-            cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, colcal, mostrar_calibrado) # Fijado para hacer calibracion con rojo
+        ret, frame = cap.read()
 
-            # Obtengo tiempos correctos, solo para archivos de video
-            if mostrar_calibrado:
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
-                # si detecto 2 colores? condicion
-                if dos_objetos:
-                    centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
-                tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
-                
-                if mostrar_frame:
-                    # interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
-                    cv2.imshow('frame', frame_calibrado)
-            
-            else:
-                # puse frame_calibrado aca tambien. las mediciones se hacen con frame_calibrado
-                centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
-                if dos_objetos:
-                    centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
-                tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
+        try:
+            h, w = frame.shape[:2]
+            centro_plano = (int(w/2), int(h/2))
+        except AttributeError:
+            print("frame None", centro_plano)
+        
+        # Calibracion: obtengo frame calibrado
+        cte_proporcion_cm_px, origen_coordenadas, frame_calibrado = calibracion(frame, ref, centro_plano, colcal, mostrar_calibrado) # Fijado para hacer calibracion con rojo
 
-                if mostrar_frame:
-                    # interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
-                    cv2.imshow('frame', frame)
-            
-            print("Procesando ", posicion_objeto, posicion_objeto2)
-            posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+        # Obtengo tiempos correctos, solo para archivos de video
+        if mostrar_calibrado:
+            centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+            # si detecto 2 colores? condicion
             if dos_objetos:
-                posicion_objeto2.append((round(tiempo_reproduccion, 2), posicion2[0], posicion2[1], posicion_cm2[0], posicion_cm2[1], distancia_centro2, distancia_centro_cm2))
+                centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+            tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
+            
+            if mostrar_frame:
+                # interfaz_texto(frame_calibrado, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+                cv2.imshow('Analisis de Archivo de Video', frame_calibrado)
+                keyCode = cv2.waitKey(1)
+        
+        else:
+            # puse frame_calibrado aca tambien. las mediciones se hacen con frame_calibrado
+            centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+            if dos_objetos:
+                centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
+            tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
+
+            if mostrar_frame:
+                # interfaz_texto(frame, posicion, posicion_cm, distancia_centro, distancia_centro_cm, origen_coordenadas)
+                cv2.imshow('Analisis de Archivo de Video', frame)
+                keyCode = cv2.waitKey(1)
+            
+        print("Procesando ", posicion_objeto, posicion_objeto2)
+        posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
+        if dos_objetos:
+            posicion_objeto2.append((round(tiempo_reproduccion, 2), posicion2[0], posicion2[1], posicion_cm2[0], posicion_cm2[1], distancia_centro2, distancia_centro_cm2))
+            
+        # Condicion de corte
+        # if (cv2.pollKey() & 0xFF == ord('q')) or (not ret):
+        if (cv2.getWindowProperty('Analisis de Archivo de Video', cv2.WND_PROP_VISIBLE) <1) or not ret:
+            # print("pressed q")
+            t, x, y = [], [], []
+            for p in posicion_objeto:
+                t.append(p[0])
+                x.append(p[3])
+                y.append(p[4])
+            if len(t) <= 3:
+                t += [0, 0, 0, 0]
+                x += [0, 0, 0, 0]
+                y += [0, 0, 0, 0]
+    
+            if dos_objetos:
+                t2, x2, y2 = [], [], []
+                for p in posicion_objeto2:
+                    t2.append(p[0])
+                    x2.append(p[3])
+                    y2.append(p[4])
+                if len(t) <= 3:
+                    t2 += [0, 0, 0, 0]
+                    x2 += [0, 0, 0, 0]
+                    y2 += [0, 0, 0, 0]
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2", directorio_fuente)
+                graficar(t2[:-3], x2[:-3], y2[:-3], "Grafico posicion Objeto 2") # :-3
+                
+            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1", directorio_fuente)
+            graficar(t[:-3], x[:-3], y[:-3], "Grafico posicion Objeto 1") # :-3
+            cap.release()
+            cv2.destroyAllWindows()
+            break
             
 # --------------------------------------------------------------------------  
 
