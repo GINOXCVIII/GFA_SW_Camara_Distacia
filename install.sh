@@ -10,7 +10,7 @@ cd "${SCRIPT_PATH}"
 
 echo "Creando archivos..."
 
-cp manual.pdf ~/Desktop
+cp manual.pdf ~/Desktop/
 
 # Creando archivos
 # bin
@@ -40,19 +40,10 @@ chmod +x Pendulo.desktop
 echo ".desktop creado"
 
 # Crear enlace simbolico al codigo en escritorio
-cd ~/Desktop
-ln -s $SCRIPT_PATH/src codigos
+cd ~/Desktop/
+ln -s $SCRIPT_PATH/src/ codigos
 
 echo "Enlace simbolico creado"
 
-# Editar permisos sobre los archivos
-cd "${SCRIPT_PATH}"
-cd ..
-chmod 774 -R GFA_SW_Camara_Distacia/
-
 echo "Listo."
-
-
-
-
 
