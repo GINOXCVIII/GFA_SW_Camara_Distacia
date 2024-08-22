@@ -10,6 +10,8 @@ cd "${SCRIPT_PATH}"
 
 echo "Creando archivos..."
 
+cp manual.pdf ~/Desktop
+
 # Creando archivos
 # bin
 cd $bin
@@ -42,6 +44,11 @@ cd ~/Desktop
 ln -s $SCRIPT_PATH/src codigos
 
 echo "Enlace simbolico creado"
+
+# Editar permisos sobre los archivos
+cd "${SCRIPT_PATH}"
+cd ..
+chmod 774 -R GFA_SW_Camara_Distacia/
 
 echo "Listo."
 
