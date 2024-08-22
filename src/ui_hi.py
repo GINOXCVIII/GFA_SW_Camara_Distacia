@@ -183,6 +183,8 @@ class Ui_MainWindow(QMainWindow):
         
         self.menuColor_Calibracion = QtWidgets.QMenu(self.menuConfiguracion)
         self.menuColor_Calibracion.setObjectName("menuColor_Calibracion")
+        
+        # Menu colores para la deteccion
         for c in colores[1:]:
             c_str = str(c[2])
             color_1 = self.menuColor_Objeto_1.addAction(c_str)
@@ -193,7 +195,8 @@ class Ui_MainWindow(QMainWindow):
             color_2.setCheckable(True)
             self.selecciones_colores_1.append(color_1)
             self.selecciones_colores_2.append(color_2)
-            
+        
+        # Menu colores para la calibracion
         for c in colores[:2]:
             c_str = str(c[2])
             color_c = self.menuColor_Calibracion.addAction(c_str)
@@ -231,6 +234,8 @@ class Ui_MainWindow(QMainWindow):
         
         self.actionManual = QtWidgets.QAction(tonChan)
         self.actionManual.setObjectName("actionManual")
+        
+        self.actionManual.triggered.connect(self.abrirManual)
         
         self.actionAcercaDe = QtWidgets.QAction(tonChan)
         self.actionAcercaDe.setObjectName("actionAcercaDe")
@@ -468,6 +473,10 @@ class Ui_MainWindow(QMainWindow):
     def ventanaAcercaDe(self):
         self.acerca_de = AboutWindow()
         self.acerca_de.show()
+        
+    def abrirManual(self):
+        ruta_pdf = "../manual.pdf"
+        os.system(f'xdg-open "{ruta_pdf}"')
         
 # ------------------------------------------------------------------------------------------------
         
