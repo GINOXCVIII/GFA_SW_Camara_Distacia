@@ -37,6 +37,12 @@ chmod +x Pendulo.desktop
 
 echo ".desktop creado"
 
+# Crear enlace simbolico al codigo en escritorio
+cd ~/Desktop
+ln -s $SCRIPT_PATH/src codigos
+
+echo "Enlace simbolico creado"
+
 echo "Listo."
 
 
