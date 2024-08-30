@@ -272,8 +272,10 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
     while True:
         
         ret, frame = cap.read()
-        
-        if (mostrar_frame and verificarVentanaCv2('video')) or (not ret):
+        verificar_ventana = False
+        # No anda en la raspberry
+        # if (mostrar_frame and verificar_ventana) or (not ret):
+        if (cv2.waitKey(1) & 0xFF == ord('q')) or (not ret):
             t, x, y = [], [], []
             for p in posicion_objeto:
                 t.append(p[0])
@@ -315,13 +317,16 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
         # Obtengo tiempos correctos, solo para archivos de video
         if mostrar_calibrado:
             centro_objeto, posicion, posicion_cm, distancia_centro, distancia_centro_cm = seguimiento_objeto(frame_calibrado, color, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
-            # si detecto 2 colores? condicion
             if dos_objetos:
                 centro_objeto2, posicion2, posicion_cm2, distancia_centro2, distancia_centro_cm2 = seguimiento_objeto(frame_calibrado, color2, origen_coordenadas, cte_proporcion_cm_px, dos_objetos)
             tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
             
             if mostrar_frame:
+                posicion_texto = (10, 10)
+                # cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame_calibrado, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame_calibrado)
+                # verificar_ventana = verificarVentanaCv2('video')
                 keyCode = cv2.waitKey(1)
         
         else:
@@ -332,8 +337,13 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
             tiempo_reproduccion = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
 
             if mostrar_frame:
+                posicion_texto = (10, 10)
+                # cv2.putText(frame, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame)
-                keyCode = cv2.waitKey(1)
+                # verificar_ventana = verificarVentanaCv2('video')
+                cv2.waitKey(1)
+                print("caralho mano es yoistin")
             
         print("Procesando ", posicion_objeto, posicion_objeto2)
         posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
