@@ -324,7 +324,7 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
             
             if mostrar_frame:
                 posicion_texto = (10, 10)
-                cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 # cv2.putText(frame_calibrado, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame_calibrado)
                 # verificar_ventana = verificarVentanaCv2('video')
@@ -339,7 +339,7 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
 
             if mostrar_frame:
                 posicion_texto = (10, 10)
-                cv2.putText(frame, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame, "Oprimir 'q' para salir", (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 # cv2.putText(frame, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame)
                 # verificar_ventana = verificarVentanaCv2('video')
