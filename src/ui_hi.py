@@ -287,7 +287,21 @@ class Ui_MainWindow(QMainWindow):
                 corte = False
         
         return cadena
-            
+    
+    def nombreFuente(self, fuente):
+        corte = True
+        cadena = fuente
+        nombre = " "
+        while corte:
+            caracter = cadena[len(cadena) - 1]
+            if caracter != "/":
+                nombre = caracter + nombre
+                cadena = cadena[:len(cadena) - 1]
+            else:
+                corte = False
+        
+        return nombre[:-1]
+
     def cambiarBotonInicar(self):
         if not self.estado_boton:
             if self.referencia_x < 0 and self.referencia_y < 0:
