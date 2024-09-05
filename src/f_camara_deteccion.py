@@ -253,6 +253,7 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
     def verificarVentanaCv2(ventana):
         try:
             if cv2.getWindowProperty(ventana, cv2.WND_PROP_VISIBLE) <1:
+            # if cv2.getWindowProperty(ventana, 0) < 0:
                 return True
             else: return False
         except cv2.error:
@@ -296,10 +297,10 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
                     t2 += [0, 0, 0, 0]
                     x2 += [0, 0, 0, 0]
                     y2 += [0, 0, 0, 0]
-                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2", directorio_fuente)
+                guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto2, "Guardar archivo de texto con coordenadas Objeto 2", directorio_fuente, 2)
                 graficar(t2[:-3], x2[:-3], y2[:-3], "Grafico posicion Objeto 2") # :-3
                 
-            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1", directorio_fuente)
+            guardar_coordenadas_txt(tiempo_acumulado, cte_proporcion_cm_px, posicion_objeto, "Guardar archivo de texto con coordenadas Objeto 1", directorio_fuente, 1)
             graficar(t[:-3], x[:-3], y[:-3], "Grafico posicion Objeto 1") # :-3
             cap.release()
             cv2.destroyAllWindows()
@@ -323,11 +324,11 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
             
             if mostrar_frame:
                 posicion_texto = (10, 10)
-                # cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-                cv2.putText(frame_calibrado, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame_calibrado, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                # cv2.putText(frame_calibrado, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame_calibrado)
                 # verificar_ventana = verificarVentanaCv2('video')
-                keyCode = cv2.waitKey(1)
+                # keyCode = cv2.waitKey(1)
         
         else:
             # puse frame_calibrado aca tambien. las mediciones se hacen con frame_calibrado
@@ -338,12 +339,11 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
 
             if mostrar_frame:
                 posicion_texto = (10, 10)
-                # cv2.putText(frame, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-                cv2.putText(frame, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                cv2.putText(frame, "Oprimir 'q' para salir", (10, 475), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                # cv2.putText(frame, "Mantener 'q' para salir", posicion_texto, cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
                 cv2.imshow('video', frame)
                 # verificar_ventana = verificarVentanaCv2('video')
-                cv2.waitKey(1)
-                print("caralho mano es yoistin")
+                # cv2.waitKey(1)
             
         print("Procesando ", posicion_objeto, posicion_objeto2)
         posicion_objeto.append((round(tiempo_reproduccion, 2), posicion[0], posicion[1], posicion_cm[0], posicion_cm[1], distancia_centro, distancia_centro_cm))
@@ -352,14 +352,14 @@ def iniciar_deteccion(color, color2, colcal, cap, ref, mostrar_calibrado, mostra
                         
 # --------------------------------------------------------------------------  
 
-def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo, directorio_fuente):
+def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo, directorio_fuente, n):
     root = tk.Tk()
     root.withdraw()
     
     directorio_destino = filedialog.askdirectory(title=titulo, initialdir=directorio_fuente)
     
     date = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime())
-    nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+".txt"
+    nombre_archivo = date[5:7]+"-"+date[8:11]+"-"+date[12:16]+"_"+date[17:25]+"-Objeto"+str(n)+".txt"
 
     if directorio_destino:
         ruta_archivo = f"{directorio_destino}/{nombre_archivo}"
@@ -368,7 +368,7 @@ def guardar_coordenadas_txt(tiempo_a, cte_cal, lista_1, titulo, directorio_fuent
             with open(ruta_archivo, 'w') as archivo:
                 archivo.write(f"{date}\n")
                 archivo.write(f"Tiempo total del proceso: {tiempo}\n")
-                archivo.write("\nCoordenadas objeto 1: \n")
+                archivo.write(f"\nCoordenadas objeto {n}: \n")
                 archivo.write("Tiempo      X(px)      Y(px)      X(cm)      Y(cm)      Dist. centro (px)      Dist. centro (cm)\n")
                 for tupla in lista_1[:-3]:
                     archivo.write(f"{tupla[0]} {tupla[1]} {tupla[2]} {tupla[3]} {tupla[4]} {tupla[5]} {tupla[6]}\n")
@@ -392,7 +392,6 @@ def graficar(t, x, y, titulo_grafico):
     
     linea_vm_x = ((t[0], t[len(t)-1]), (promedio_x, promedio_x)) # (x0, xf)
     linea_vmin_y= ((t[0], t[len(t)-1]), (promedio_min_y, promedio_min_y))
-    print("Promedios: ", np.average(x), np.average(y_min))
     
     fig, axs = plt.subplots(1, 2, layout='constrained')
     plt.suptitle(titulo_grafico)
