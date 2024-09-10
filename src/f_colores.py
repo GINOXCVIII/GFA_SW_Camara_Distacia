@@ -8,8 +8,8 @@ import numpy as np
 low_green = np.array([34, 16, 0])
 high_green = np.array([100, 250, 250])
 
-low_red = np.array([159, 50, 70])
-high_red = np.array([180, 255, 255])
+low_red = np.array([150, 45, 65])
+high_red = np.array([185, 255, 255])
 
 low_blue = np.array([85, 21, 0])
 high_blue = np.array([130, 255, 255])
@@ -26,8 +26,8 @@ high_orange = np.array([24, 255, 255])
 low_cyan = np.array([85, 100, 100])
 high_cyan = np.array([100, 255, 255])
 
-low_black = np.array([0, 0, 0])
-high_black = np.array([180, 255, 50])
+low_black = np.array([100, 65, 10])
+high_black = np.array([160, 100, 100])
 
 # Tuplas colores
 verde = (low_green, high_green, "Verde")
